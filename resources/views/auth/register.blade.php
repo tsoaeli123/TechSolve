@@ -1,52 +1,80 @@
-<x-guest-layout>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Register</title>
+</head>
+<body>
+    <h1>Register</h1>
+
+    @if(session('message'))
+        <p style="color:green">{{ session('message') }}</p>
+    @endif
+
+    @if($errors->any())
+        <ul style="color:red">
+            @foreach($errors->all() as $error)
+                <li>{{ $error }}</li>
+            @endforeach
+        </ul>
+    @endif
+
     <form method="POST" action="{{ route('register') }}">
         @csrf
 
         <!-- Name -->
-        <div>
-            <x-input-label for="name" :value="__('Name')" />
-            <x-text-input id="name" class="block mt-1 w-full" type="text" name="name" :value="old('name')" required autofocus autocomplete="name" />
-            <x-input-error :messages="$errors->get('name')" class="mt-2" />
-        </div>
+        <label for="name">Full Name:</label>
+        <input type="text" id="name" name="name" value="{{ old('name') }}" required><br><br>
 
-        <!-- Email Address -->
-        <div class="mt-4">
-            <x-input-label for="email" :value="__('Email')" />
-            <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required autocomplete="username" />
-            <x-input-error :messages="$errors->get('email')" class="mt-2" />
-        </div>
+        <!-- Email -->
+        <label for="email">Email:</label>
+        <input type="email" id="email" name="email" value="{{ old('email') }}" required><br><br>
 
         <!-- Password -->
-        <div class="mt-4">
-            <x-input-label for="password" :value="__('Password')" />
-
-            <x-text-input id="password" class="block mt-1 w-full"
-                            type="password"
-                            name="password"
-                            required autocomplete="new-password" />
-
-            <x-input-error :messages="$errors->get('password')" class="mt-2" />
-        </div>
+        <label for="password">Password:</label>
+        <input type="password" id="password" name="password" required><br><br>
 
         <!-- Confirm Password -->
-        <div class="mt-4">
-            <x-input-label for="password_confirmation" :value="__('Confirm Password')" />
+        <label for="password_confirmation">Confirm Password:</label>
+        <input type="password" id="password_confirmation" name="password_confirmation" required><br><br>
 
-            <x-text-input id="password_confirmation" class="block mt-1 w-full"
-                            type="password"
-                            name="password_confirmation" required autocomplete="new-password" />
+        <!-- Role -->
+        <label for="role">Register As:</label>
+        <select id="role" name="role" required>
+            <option value="">-- Select Role --</option>
+            <option value="teacher" {{ old('role')=='teacher' ? 'selected' : '' }}>Teacher</option>
+            <option value="student" {{ old('role')=='student' ? 'selected' : '' }}>Student</option>
+        </select><br><br>
 
-            <x-input-error :messages="$errors->get('password_confirmation')" class="mt-2" />
+        <!-- Teacher -->
+        <div id="teacher-fields" style="display:none;">
+            <label for="subject_specialization">Subject Specialization:</label>
+            <input type="text" id="subject_specialization" name="subject_specialization" value="{{ old('subject_specialization') }}"><br><br>
         </div>
 
-        <div class="flex items-center justify-end mt-4">
-            <a class="underline text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-gray-800" href="{{ route('login') }}">
-                {{ __('Already registered?') }}
-            </a>
-
-            <x-primary-button class="ms-4">
-                {{ __('Register') }}
-            </x-primary-button>
+        <!-- Student -->
+        <div id="student-fields" style="display:none;">
+            <label for="class_grade">Class/Grade:</label>
+            <input type="text" id="class_grade" name="class_grade" value="{{ old('class_grade') }}"><br><br>
         </div>
+
+        <button type="submit">Register</button>
     </form>
-</x-guest-layout>
+
+    <script>
+        const roleSelect = document.getElementById('role');
+        const teacherFields = document.getElementById('teacher-fields');
+        const studentFields = document.getElementById('student-fields');
+
+        roleSelect.addEventListener('change', function() {
+            teacherFields.style.display = this.value === 'teacher' ? 'block' : 'none';
+            studentFields.style.display = this.value === 'student' ? 'block' : 'none';
+        });
+
+        window.addEventListener('DOMContentLoaded', () => {
+            if(roleSelect.value === 'teacher') teacherFields.style.display = 'block';
+            if(roleSelect.value === 'student') studentFields.style.display = 'block';
+        });
+    </script>
+</body>
+</html>
