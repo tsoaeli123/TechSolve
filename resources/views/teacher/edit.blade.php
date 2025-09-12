@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Teacher Dashboard | TechSolve Online Learning</title>
+  <title>Edit Teacher Profile | TechSolve Online Learning</title>
   <!-- Bootstrap 5 CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
   <!-- Bootstrap Icons -->
@@ -126,116 +126,77 @@
       margin-bottom: 0;
     }
 
-    /* Cards Section */
-    .cards {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 20px;
-      margin-bottom: 30px;
-    }
-
-    .card {
+    /* Form Styles */
+    .form-container {
       background: white;
-      border-radius: 12px;
+      border-radius: 10px;
       padding: 25px;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-      transition: transform 0.3s, box-shadow 0.3s;
-      border: none;
-      height: 100%;
+      margin-bottom: 25px;
     }
 
-    .card:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
-    }
-
-    .card h3 {
+    .form-label {
       font-weight: 600;
       color: var(--primary-dark);
-      margin-bottom: 15px;
-      font-size: 1.25rem;
+      margin-bottom: 8px;
     }
 
-    .card p {
-      color: var(--primary-light);
-      margin-bottom: 20px;
-      line-height: 1.5;
+    .form-control {
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      padding: 10px 15px;
+      transition: all 0.3s;
     }
 
-    .card-icon {
-      font-size: 2rem;
-      color: var(--accent-blue);
-      margin-bottom: 15px;
+    .form-control:focus {
+      border-color: var(--accent-blue);
+      box-shadow: 0 0 0 0.25rem rgba(52, 152, 219, 0.25);
     }
 
-    .btn-card {
+    .btn-primary {
       background: var(--accent-green);
-      color: white;
       border: none;
       padding: 10px 20px;
       border-radius: 6px;
       font-weight: 500;
       transition: all 0.3s;
-      width: 100%;
     }
 
-    .btn-card:hover {
+    .btn-primary:hover {
       background: #27ae60;
       transform: translateY(-2px);
     }
 
-    /* Stats Section */
-    .stats {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 20px;
-      margin-bottom: 30px;
-    }
-
-    .stat-card {
-      background: white;
-      border-radius: 10px;
-      padding: 20px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-      text-align: center;
-    }
-
-    .stat-number {
-      font-size: 2rem;
-      font-weight: 700;
-      color: var(--accent-blue);
-      margin-bottom: 5px;
-    }
-
-    .stat-label {
-      color: var(--primary-light);
-      font-size: 0.9rem;
-    }
-
-    /* Activity List */
-    .activity-list {
-      display: flex;
-      flex-direction: column;
-      gap: 15px;
-    }
-
-    .activity-item {
-      display: flex;
-      align-items: center;
-      gap: 15px;
-    }
-
-    .activity-content {
-      flex: 1;
-    }
-
-    .activity-content span {
-      display: block;
+    .btn-danger {
+      background: #e74c3c;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
       font-weight: 500;
+      transition: all 0.3s;
     }
 
-    .activity-content small {
-      color: var(--primary-light);
+    .btn-danger:hover {
+      background: #c0392b;
+      transform: translateY(-2px);
+    }
+
+    .alert-success {
+      background-color: #d4edda;
+      color: #155724;
+      border: none;
+      border-radius: 6px;
+      margin-bottom: 20px;
+    }
+
+    .text-danger {
+      color: #e74c3c !important;
+    }
+
+    .delete-section {
+      border-top: 1px solid #eee;
+      padding-top: 25px;
+      margin-top: 25px;
     }
 
     /* Responsive Design */
@@ -269,23 +230,6 @@
         margin-left: 0;
         padding: 15px;
       }
-
-      .cards {
-        grid-template-columns: 1fr;
-      }
-
-      .menu-toggle {
-        display: block;
-        position: fixed;
-        top: 15px;
-        left: 15px;
-        z-index: 1001;
-        background: var(--primary-dark);
-        color: white;
-        border: none;
-        border-radius: 5px;
-        padding: 8px 12px;
-      }
     }
   </style>
 </head>
@@ -297,7 +241,7 @@
       <h2>Teacher Panel</h2>
     </div>
     <ul>
-       <li><a href="{{ route('tests.create') }}"><i class="bi bi-journal-plus"></i> <span>Create Test</span></a></li>
+          <li><a href="{{ route('tests.create') }}"><i class="bi bi-journal-plus"></i> <span>Create Test</span></a></li>
   <li><a href="{{ route('tests.index') }}"><i class="bi bi-journal-text"></i> <span>Manage Tests</span></a></li>
 <li>
     <a href="{{ route('teacher.profile.edit') }}">
@@ -324,94 +268,99 @@
   <!-- Main Content -->
   <main class="main-content">
     <header>
-      <h1>Hello, {{ Auth::user()->name }} <span class="wave">👋</span></h1>
-      <p>Manage your tests and monitor student performance efficiently.</p>
+      <h1>Edit Teacher Profile <span class="wave">👤</span></h1>
+      <p>Update your personal information and account settings.</p>
     </header>
 
-    <!-- Stats Section -->
-    <div class="stats">
-      <div class="stat-card">
-        <div class="stat-number">5</div>
-        <div class="stat-label">Active Tests</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-number">142</div>
-        <div class="stat-label">Students</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-number">87%</div>
-        <div class="stat-label">Average Completion</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-number">4.2</div>
-        <div class="stat-label">Avg. Rating</div>
-      </div>
-    </div>
-
-    <!-- Cards Section -->
-    <section class="cards">
-      <div class="card">
-        <div class="card-icon">
-          <i class="bi bi-journal-plus"></i>
+    <div class="form-container">
+      <!-- Success message -->
+      @if(session('success'))
+        <div class="alert alert-success">
+          {{ session('success') }}
         </div>
-        <h3>Create & Assign Test</h3>
-        <p>Build tests with objective & subjective questions for your students.</p>
-        <button class="btn-card">Create Test</button>
-      </div>
+      @endif
 
-      <div class="card">
-        <div class="card-icon">
-          <i class="bi bi-calendar-event"></i>
+      <form method="POST" action="{{ route('teacher.profile.update') }}">
+        @csrf
+        @method('PUT')
+
+        <!-- Name -->
+        <div class="mb-4">
+          <label for="name" class="form-label">Name</label>
+          <input id="name" type="text" name="name" value="{{ old('name', $teacher->name) }}" required autofocus
+                class="form-control @error('name') is-invalid @enderror">
+          @error('name')
+            <div class="text-danger mt-1">{{ $message }}</div>
+          @enderror
         </div>
-        <h3>Schedule Deadlines</h3>
-        <p>Set durations and deadlines for upcoming tests effortlessly.</p>
-        <button class="btn-card">Schedule</button>
-      </div>
 
-      <div class="card">
-        <div class="card-icon">
-          <i class="bi bi-check-square"></i>
+        <!-- Email -->
+        <div class="mb-4">
+          <label for="email" class="form-label">Email</label>
+          <input id="email" type="email" name="email" value="{{ old('email', $teacher->email) }}" required
+                class="form-control @error('email') is-invalid @enderror">
+          @error('email')
+            <div class="text-danger mt-1">{{ $message }}</div>
+          @enderror
         </div>
-        <h3>Grade & Publish Results</h3>
-        <p>Auto-grade objective questions and manually grade subjective ones.</p>
-        <button class="btn-card">Manage Results</button>
-      </div>
 
-      <div class="card">
-        <div class="card-icon">
-          <i class="bi bi-graph-up"></i>
+        <!-- Subject Specialization -->
+        <div class="mb-4">
+          <label for="subject_specialization" class="form-label">Subject Specialization</label>
+          <input id="subject_specialization" type="text" name="subject_specialization"
+                value="{{ old('subject_specialization', $teacher->subject_specialization) }}"
+                class="form-control @error('subject_specialization') is-invalid @enderror">
+          @error('subject_specialization')
+            <div class="text-danger mt-1">{{ $message }}</div>
+          @enderror
         </div>
-        <h3>Student Performance</h3>
-        <p>Track scores and progress of your students at a glance.</p>
-        <button class="btn-card">View Reports</button>
-      </div>
-    </section>
 
-    <!-- Recent Activity Section -->
-    <div class="card">
-      <h3>Recent Activity</h3>
-      <div class="activity-list">
-        <div class="activity-item">
-          <i class="bi bi-plus-circle-fill text-success"></i>
-          <div class="activity-content">
-            <span>Created "Mathematics Midterm Test"</span>
-            <small>2 hours ago</small>
+        <!-- Password -->
+        <div class="mb-4">
+          <label for="password" class="form-label">New Password (leave blank to keep current)</label>
+          <input id="password" type="password" name="password"
+                class="form-control @error('password') is-invalid @enderror">
+          @error('password')
+            <div class="text-danger mt-1">{{ $message }}</div>
+          @enderror
+        </div>
+
+        <!-- Confirm Password -->
+        <div class="mb-4">
+          <label for="password_confirmation" class="form-label">Confirm New Password</label>
+          <input id="password_confirmation" type="password" name="password_confirmation"
+                class="form-control">
+        </div>
+
+        <!-- Submit Button -->
+        <div class="mt-4">
+          <button type="submit" class="btn btn-primary">
+            Update Profile
+          </button>
+        </div>
+      </form>
+
+      <!-- Delete Account -->
+      <div class="delete-section">
+        <form method="POST" action="{{ route('teacher.profile.destroy') }}">
+          @csrf
+          @method('DELETE')
+
+          <h2 class="h5 text-danger mb-3">Delete Account</h2>
+          <p class="text-muted mb-3">Enter your password to confirm deletion.</p>
+
+          <div class="mb-3">
+            <input type="password" name="password" placeholder="Your password"
+                  class="form-control @error('password') is-invalid @enderror" required>
+            @error('password')
+              <div class="text-danger mt-1">{{ $message }}</div>
+            @enderror
           </div>
-        </div>
-        <div class="activity-item">
-          <i class="bi bi-check-circle-fill text-primary"></i>
-          <div class="activity-content">
-            <span>Graded "Science Quiz" submissions</span>
-            <small>Yesterday</small>
-          </div>
-        </div>
-        <div class="activity-item">
-          <i class="bi bi-calendar-event text-warning"></i>
-          <div class="activity-content">
-            <span>Scheduled "History Assignment" deadline</span>
-            <small>2 days ago</small>
-          </div>
-        </div>
+
+          <button type="submit" class="btn btn-danger">
+            Delete Account
+          </button>
+        </form>
       </div>
     </div>
   </main>

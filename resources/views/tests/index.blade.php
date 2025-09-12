@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Teacher Dashboard | TechSolve Online Learning</title>
+  <title>Manage Tests | TechSolve</title>
   <!-- Bootstrap 5 CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
   <!-- Bootstrap Icons -->
@@ -126,115 +126,114 @@
       margin-bottom: 0;
     }
 
-    /* Cards Section */
-    .cards {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 20px;
-      margin-bottom: 30px;
-    }
-
-    .card {
+    /* Table Styles */
+    .table-container {
       background: white;
       border-radius: 12px;
       padding: 25px;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-      transition: transform 0.3s, box-shadow 0.3s;
-      border: none;
-      height: 100%;
+      margin-bottom: 30px;
+      overflow: hidden;
     }
 
-    .card:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+    .table {
+      width: 100%;
+      border-collapse: collapse;
     }
 
-    .card h3 {
-      font-weight: 600;
-      color: var(--primary-dark);
-      margin-bottom: 15px;
-      font-size: 1.25rem;
-    }
-
-    .card p {
-      color: var(--primary-light);
-      margin-bottom: 20px;
-      line-height: 1.5;
-    }
-
-    .card-icon {
-      font-size: 2rem;
-      color: var(--accent-blue);
-      margin-bottom: 15px;
-    }
-
-    .btn-card {
-      background: var(--accent-green);
+    .table thead {
+      background: var(--primary-dark);
       color: white;
+    }
+
+    .table th {
+      padding: 15px;
+      text-align: left;
+      font-weight: 600;
+    }
+
+    .table td {
+      padding: 15px;
+      border-bottom: 1px solid #eee;
+    }
+
+    .table tbody tr:hover {
+      background-color: rgba(52, 152, 219, 0.05);
+    }
+
+    .btn-primary {
+      background: var(--accent-blue);
       border: none;
       padding: 10px 20px;
       border-radius: 6px;
       font-weight: 500;
       transition: all 0.3s;
-      width: 100%;
     }
 
-    .btn-card:hover {
-      background: #27ae60;
+    .btn-primary:hover {
+      background: #2980b9;
       transform: translateY(-2px);
     }
 
-    /* Stats Section */
-    .stats {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 20px;
-      margin-bottom: 30px;
+    .btn-sm {
+      padding: 5px 10px;
+      font-size: 0.875rem;
+      border-radius: 4px;
+      margin-right: 5px;
     }
 
-    .stat-card {
-      background: white;
-      border-radius: 10px;
-      padding: 20px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    .btn-warning {
+      background: #f39c12;
+      color: white;
+      border: none;
+    }
+
+    .btn-warning:hover {
+      background: #e67e22;
+    }
+
+    .btn-info {
+      background: #00bcd4;
+      color: white;
+      border: none;
+    }
+
+    .btn-info:hover {
+      background: #0097a7;
+    }
+
+    .btn-secondary {
+      background: var(--primary-light);
+      color: white;
+      border: none;
+    }
+
+    .btn-secondary:hover {
+      background: var(--primary-medium);
+    }
+
+    .btn-danger {
+      background: #e74c3c;
+      color: white;
+      border: none;
+    }
+
+    .btn-danger:hover {
+      background: #c0392b;
+    }
+
+    .alert-success {
+      background: rgba(46, 204, 113, 0.15);
+      color: #27ae60;
+      border: 1px solid #2ecc71;
+      border-radius: 6px;
+      padding: 12px 20px;
+      margin-bottom: 20px;
+    }
+
+    .no-tests {
       text-align: center;
-    }
-
-    .stat-number {
-      font-size: 2rem;
-      font-weight: 700;
-      color: var(--accent-blue);
-      margin-bottom: 5px;
-    }
-
-    .stat-label {
-      color: var(--primary-light);
-      font-size: 0.9rem;
-    }
-
-    /* Activity List */
-    .activity-list {
-      display: flex;
-      flex-direction: column;
-      gap: 15px;
-    }
-
-    .activity-item {
-      display: flex;
-      align-items: center;
-      gap: 15px;
-    }
-
-    .activity-content {
-      flex: 1;
-    }
-
-    .activity-content span {
-      display: block;
-      font-weight: 500;
-    }
-
-    .activity-content small {
+      padding: 30px;
       color: var(--primary-light);
     }
 
@@ -270,10 +269,6 @@
         padding: 15px;
       }
 
-      .cards {
-        grid-template-columns: 1fr;
-      }
-
       .menu-toggle {
         display: block;
         position: fixed;
@@ -286,6 +281,19 @@
         border-radius: 5px;
         padding: 8px 12px;
       }
+
+      .table-container {
+        overflow-x: auto;
+      }
+
+      .table {
+        min-width: 600px;
+      }
+
+      .btn-sm {
+        margin-bottom: 5px;
+        display: inline-block;
+      }
     }
   </style>
 </head>
@@ -297,7 +305,7 @@
       <h2>Teacher Panel</h2>
     </div>
     <ul>
-       <li><a href="{{ route('tests.create') }}"><i class="bi bi-journal-plus"></i> <span>Create Test</span></a></li>
+      <li><a href="{{ route('tests.create') }}"><i class="bi bi-journal-plus"></i> <span>Create Test</span></a></li>
   <li><a href="{{ route('tests.index') }}"><i class="bi bi-journal-text"></i> <span>Manage Tests</span></a></li>
 <li>
     <a href="{{ route('teacher.profile.edit') }}">
@@ -324,95 +332,52 @@
   <!-- Main Content -->
   <main class="main-content">
     <header>
-      <h1>Hello, {{ Auth::user()->name }} <span class="wave">👋</span></h1>
+      <h1>My Tests <span class="wave">📚</span></h1>
       <p>Manage your tests and monitor student performance efficiently.</p>
     </header>
 
-    <!-- Stats Section -->
-    <div class="stats">
-      <div class="stat-card">
-        <div class="stat-number">5</div>
-        <div class="stat-label">Active Tests</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-number">142</div>
-        <div class="stat-label">Students</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-number">87%</div>
-        <div class="stat-label">Average Completion</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-number">4.2</div>
-        <div class="stat-label">Avg. Rating</div>
-      </div>
-    </div>
+    <div class="table-container">
+      <a href="{{ route('tests.create') }}" class="btn btn-primary mb-4">+ Create New Test</a>
 
-    <!-- Cards Section -->
-    <section class="cards">
-      <div class="card">
-        <div class="card-icon">
-          <i class="bi bi-journal-plus"></i>
-        </div>
-        <h3>Create & Assign Test</h3>
-        <p>Build tests with objective & subjective questions for your students.</p>
-        <button class="btn-card">Create Test</button>
-      </div>
+      @if(session('success'))
+        <div class="alert alert-success">{{ session('success') }}</div>
+      @endif
 
-      <div class="card">
-        <div class="card-icon">
-          <i class="bi bi-calendar-event"></i>
-        </div>
-        <h3>Schedule Deadlines</h3>
-        <p>Set durations and deadlines for upcoming tests effortlessly.</p>
-        <button class="btn-card">Schedule</button>
-      </div>
-
-      <div class="card">
-        <div class="card-icon">
-          <i class="bi bi-check-square"></i>
-        </div>
-        <h3>Grade & Publish Results</h3>
-        <p>Auto-grade objective questions and manually grade subjective ones.</p>
-        <button class="btn-card">Manage Results</button>
-      </div>
-
-      <div class="card">
-        <div class="card-icon">
-          <i class="bi bi-graph-up"></i>
-        </div>
-        <h3>Student Performance</h3>
-        <p>Track scores and progress of your students at a glance.</p>
-        <button class="btn-card">View Reports</button>
-      </div>
-    </section>
-
-    <!-- Recent Activity Section -->
-    <div class="card">
-      <h3>Recent Activity</h3>
-      <div class="activity-list">
-        <div class="activity-item">
-          <i class="bi bi-plus-circle-fill text-success"></i>
-          <div class="activity-content">
-            <span>Created "Mathematics Midterm Test"</span>
-            <small>2 hours ago</small>
-          </div>
-        </div>
-        <div class="activity-item">
-          <i class="bi bi-check-circle-fill text-primary"></i>
-          <div class="activity-content">
-            <span>Graded "Science Quiz" submissions</span>
-            <small>Yesterday</small>
-          </div>
-        </div>
-        <div class="activity-item">
-          <i class="bi bi-calendar-event text-warning"></i>
-          <div class="activity-content">
-            <span>Scheduled "History Assignment" deadline</span>
-            <small>2 days ago</small>
-          </div>
-        </div>
-      </div>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Subject</th>
+            <th>Deadline</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @forelse($tests as $test)
+            <tr>
+              <td>{{ $test->title }}</td>
+              <td>{{ $test->subject->name ?? 'N/A' }}</td>
+              <td>{{ $test->scheduled_at ? $test->scheduled_at->format('d M Y H:i') : 'N/A' }}</td>
+              <td>
+                <a href="{{ route('tests.assign', $test->id) }}" class="btn btn-sm btn-warning">Assign</a>
+                <a href="{{ route('tests.show', $test->id) }}" class="btn btn-sm btn-info">View</a>
+                <a href="{{ route('tests.edit', $test->id) }}" class="btn btn-sm btn-secondary">Edit</a>
+                <form action="{{ route('tests.destroy', $test->id) }}" method="POST" style="display:inline;">
+                  @csrf @method('DELETE')
+                  <button class="btn btn-sm btn-danger" onclick="return confirm('Delete this test?')">Delete</button>
+                </form>
+              </td>
+            </tr>
+          @empty
+            <tr>
+              <td colspan="4" class="no-tests">
+                <i class="bi bi-journal-x" style="font-size: 2rem;"></i>
+                <p>No tests created yet.</p>
+              </td>
+            </tr>
+          @endforelse
+        </tbody>
+      </table>
     </div>
   </main>
 

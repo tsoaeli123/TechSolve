@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Teacher Dashboard | TechSolve Online Learning</title>
+  <title>Teacher Profile | TechSolve Online Learning</title>
   <!-- Bootstrap 5 CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
   <!-- Bootstrap Icons -->
@@ -126,49 +126,65 @@
       margin-bottom: 0;
     }
 
-    /* Cards Section */
-    .cards {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 20px;
-      margin-bottom: 30px;
-    }
-
-    .card {
+    /* Profile Card Styles */
+    .profile-card {
       background: white;
-      border-radius: 12px;
+      border-radius: 10px;
       padding: 25px;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-      transition: transform 0.3s, box-shadow 0.3s;
-      border: none;
-      height: 100%;
+      margin-bottom: 25px;
     }
 
-    .card:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+    .profile-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 25px;
     }
 
-    .card h3 {
-      font-weight: 600;
+    .profile-avatar {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      background: var(--accent-blue);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.5rem;
+      color: white;
+      margin-right: 20px;
+    }
+
+    .profile-info h2 {
+      margin: 0;
       color: var(--primary-dark);
-      margin-bottom: 15px;
-      font-size: 1.25rem;
     }
 
-    .card p {
+    .profile-info p {
       color: var(--primary-light);
-      margin-bottom: 20px;
-      line-height: 1.5;
+      margin: 5px 0 0 0;
     }
 
-    .card-icon {
-      font-size: 2rem;
-      color: var(--accent-blue);
+    .profile-details {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+    }
+
+    .detail-item {
       margin-bottom: 15px;
     }
 
-    .btn-card {
+    .detail-item strong {
+      display: block;
+      color: var(--primary-dark);
+      margin-bottom: 5px;
+    }
+
+    .detail-item span {
+      color: var(--primary-light);
+    }
+
+    .btn-edit {
       background: var(--accent-green);
       color: white;
       border: none;
@@ -176,12 +192,14 @@
       border-radius: 6px;
       font-weight: 500;
       transition: all 0.3s;
-      width: 100%;
+      text-decoration: none;
+      display: inline-block;
     }
 
-    .btn-card:hover {
+    .btn-edit:hover {
       background: #27ae60;
       transform: translateY(-2px);
+      color: white;
     }
 
     /* Stats Section */
@@ -212,30 +230,14 @@
       font-size: 0.9rem;
     }
 
-    /* Activity List */
-    .activity-list {
-      display: flex;
-      flex-direction: column;
-      gap: 15px;
-    }
-
-    .activity-item {
-      display: flex;
-      align-items: center;
-      gap: 15px;
-    }
-
-    .activity-content {
-      flex: 1;
-    }
-
-    .activity-content span {
-      display: block;
-      font-weight: 500;
-    }
-
-    .activity-content small {
-      color: var(--primary-light);
+    /* Alert Styles */
+    .alert-success {
+      background-color: #d4edda;
+      color: #155724;
+      border: none;
+      border-radius: 6px;
+      padding: 15px;
+      margin-bottom: 20px;
     }
 
     /* Responsive Design */
@@ -270,21 +272,14 @@
         padding: 15px;
       }
 
-      .cards {
-        grid-template-columns: 1fr;
+      .profile-header {
+        flex-direction: column;
+        text-align: center;
       }
 
-      .menu-toggle {
-        display: block;
-        position: fixed;
-        top: 15px;
-        left: 15px;
-        z-index: 1001;
-        background: var(--primary-dark);
-        color: white;
-        border: none;
-        border-radius: 5px;
-        padding: 8px 12px;
+      .profile-avatar {
+        margin-right: 0;
+        margin-bottom: 15px;
       }
     }
   </style>
@@ -297,7 +292,7 @@
       <h2>Teacher Panel</h2>
     </div>
     <ul>
-       <li><a href="{{ route('tests.create') }}"><i class="bi bi-journal-plus"></i> <span>Create Test</span></a></li>
+          <li><a href="{{ route('tests.create') }}"><i class="bi bi-journal-plus"></i> <span>Create Test</span></a></li>
   <li><a href="{{ route('tests.index') }}"><i class="bi bi-journal-text"></i> <span>Manage Tests</span></a></li>
 <li>
     <a href="{{ route('teacher.profile.edit') }}">
@@ -324,9 +319,16 @@
   <!-- Main Content -->
   <main class="main-content">
     <header>
-      <h1>Hello, {{ Auth::user()->name }} <span class="wave">👋</span></h1>
-      <p>Manage your tests and monitor student performance efficiently.</p>
+      <h1>Teacher Profile <span class="wave">👤</span></h1>
+      <p>View and manage your profile information.</p>
     </header>
+
+    <!-- Success message -->
+    @if(session('success'))
+      <div class="alert-success">
+        {{ session('success') }}
+      </div>
+    @endif
 
     <!-- Stats Section -->
     <div class="stats">
@@ -348,70 +350,44 @@
       </div>
     </div>
 
-    <!-- Cards Section -->
-    <section class="cards">
-      <div class="card">
-        <div class="card-icon">
-          <i class="bi bi-journal-plus"></i>
+    <!-- Profile Card -->
+    <div class="profile-card">
+      <div class="profile-header">
+        <div class="profile-avatar">
+          {{ substr($teacher->name, 0, 1) }}
         </div>
-        <h3>Create & Assign Test</h3>
-        <p>Build tests with objective & subjective questions for your students.</p>
-        <button class="btn-card">Create Test</button>
+        <div class="profile-info">
+          <h2>{{ $teacher->name }}</h2>
+          <p>{{ $teacher->subject_specialization ?? 'Subject Specialist' }}</p>
+        </div>
       </div>
 
-      <div class="card">
-        <div class="card-icon">
-          <i class="bi bi-calendar-event"></i>
+      <div class="profile-details">
+        <div class="detail-item">
+          <strong>Name</strong>
+          <span>{{ $teacher->name }}</span>
         </div>
-        <h3>Schedule Deadlines</h3>
-        <p>Set durations and deadlines for upcoming tests effortlessly.</p>
-        <button class="btn-card">Schedule</button>
+
+        <div class="detail-item">
+          <strong>Email</strong>
+          <span>{{ $teacher->email }}</span>
+        </div>
+
+        <div class="detail-item">
+          <strong>Subject Specialization</strong>
+          <span>{{ $teacher->subject_specialization ?? 'N/A' }}</span>
+        </div>
+
+        <div class="detail-item">
+          <strong>Member Since</strong>
+          <span>{{ $teacher->created_at->format('F j, Y') }}</span>
+        </div>
       </div>
 
-      <div class="card">
-        <div class="card-icon">
-          <i class="bi bi-check-square"></i>
-        </div>
-        <h3>Grade & Publish Results</h3>
-        <p>Auto-grade objective questions and manually grade subjective ones.</p>
-        <button class="btn-card">Manage Results</button>
-      </div>
-
-      <div class="card">
-        <div class="card-icon">
-          <i class="bi bi-graph-up"></i>
-        </div>
-        <h3>Student Performance</h3>
-        <p>Track scores and progress of your students at a glance.</p>
-        <button class="btn-card">View Reports</button>
-      </div>
-    </section>
-
-    <!-- Recent Activity Section -->
-    <div class="card">
-      <h3>Recent Activity</h3>
-      <div class="activity-list">
-        <div class="activity-item">
-          <i class="bi bi-plus-circle-fill text-success"></i>
-          <div class="activity-content">
-            <span>Created "Mathematics Midterm Test"</span>
-            <small>2 hours ago</small>
-          </div>
-        </div>
-        <div class="activity-item">
-          <i class="bi bi-check-circle-fill text-primary"></i>
-          <div class="activity-content">
-            <span>Graded "Science Quiz" submissions</span>
-            <small>Yesterday</small>
-          </div>
-        </div>
-        <div class="activity-item">
-          <i class="bi bi-calendar-event text-warning"></i>
-          <div class="activity-content">
-            <span>Scheduled "History Assignment" deadline</span>
-            <small>2 days ago</small>
-          </div>
-        </div>
+      <div class="mt-4">
+        <a href="{{ route('teacher.profile.edit') }}" class="btn-edit">
+          Edit Profile
+        </a>
       </div>
     </div>
   </main>
