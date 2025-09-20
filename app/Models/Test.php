@@ -32,4 +32,10 @@ class Test extends Model
     {
         return $this->belongsTo(Subject::class);
     }
+
+    public function assignedTests()
+{
+    return $this->hasMany(AssignedTest::class);
+}
+
 }

@@ -42,12 +42,20 @@ Route::middleware('auth')->group(function () {
     // Resource routes for tests
     Route::resource('tests', TestController::class);
 
-    // Assign tests
-    Route::get('/tests/{test}/assign', [TestController::class, 'assignForm'])->name('tests.assignForm');
-    Route::post('/tests/{test}/assign', [TestController::class, 'assign'])->name('tests.assign');
+
+
 
     // Ajax route
     Route::get('/grades/{grade}/students', [TestController::class, 'getStudentsByGrade'])->name('grades.students');
+});
+ // Assign tests
+Route::get('/tests/{id}/assign-form', [TestController::class, 'assignForm'])->name('tests.assign.form');
+Route::post('/tests/{id}/assign', [TestController::class, 'assignStore'])->name('tests.assign.store');
+
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/tests/{test}/submissions', [TestController::class, 'viewSubmissions'])
+        ->name('tests.submissions');
 });
 
 // ---------------- ADMIN ROUTES ----------------

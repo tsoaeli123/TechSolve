@@ -305,6 +305,8 @@
         <span>Profile</span>
     </a>
 </li>
+
+</li>
       <li><a href="#"><i class="bi bi-check-square"></i> <span>Auto-Grade</span></a></li>
       <li><a href="#"><i class="bi bi-pencil-square"></i> <span>Grade Answers</span></a></li>
       <li><a href="#"><i class="bi bi-graph-up"></i> <span>Publish Results</span></a></li>
