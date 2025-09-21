@@ -257,7 +257,7 @@
         <div class="container">
             <a class="navbar-brand d-flex align-items-center" href="#">
                 <img src="{{ asset('images/logo.jpg') }}" alt="TechSolve Logo" width="50" height="50" class="d-inline-block align-text-top me-3 rounded-circle">
-                TechSolve <span class="lesotho-flag"></span>
+                Online Exam Center <span class="lesotho-flag"></span>
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
@@ -349,7 +349,7 @@
             <div class="row align-items-center">
                 <div class="col-lg-6">
                     <h2 class="fw-bold mb-4">Our Mission: Elevating Education in Lesotho</h2>
-                    <p class="mb-4">TechSolve was founded to address the academic performance challenges facing Lesotho students. Through our innovative monthly testing system, we provide:</p>
+                    <p class="mb-4">The Online Exam Center was created to address the academic performance challenges facing students in Lesotho. Through An Innovative monthly testing system, it provides students with the opportunity to:</p>
                     <ul class="list-unstyled">
                         <li class="mb-3"><i class="bi bi-check-circle-fill text-success me-2"></i> Regular assessment to identify knowledge gaps</li>
                         <li class="mb-3"><i class="bi bi-check-circle-fill text-success me-2"></i> Detailed performance analytics for students and teachers</li>
@@ -462,7 +462,7 @@
                             <i class="bi bi-facebook contact-icon"></i>
                             <div>
                                 <h5 class="mb-0">Facebook</h5>
-                                <p class="mb-0">TeckSolve innovations</p>
+                                <p class="mb-0">TechSolve innovations</p>
                             </div>
                         </div>
 
@@ -470,7 +470,7 @@
                             <i class="bi bi-youtube contact-icon"></i>
                             <div>
                                 <h5 class="mb-0">YouTube</h5>
-                                <p class="mb-0">TeckSolve</p>
+                                <p class="mb-0">TechSolve</p>
                             </div>
                         </div>
 
@@ -478,7 +478,7 @@
                             <i class="bi bi-linkedin contact-icon"></i>
                             <div>
                                 <h5 class="mb-0">LinkedIn</h5>
-                                <p class="mb-0">TeckSolve</p>
+                                <p class="mb-0">TechSolve</p>
                             </div>
                         </div>
 
