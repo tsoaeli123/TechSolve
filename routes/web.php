@@ -5,6 +5,7 @@ use App\Http\Controllers\TestController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\TeacherProfileController;
+use App\Http\Controllers\AnnouncementsController;
 
 /*
 |--------------------------------------------------------------------------
@@ -48,6 +49,16 @@ Route::middleware('auth')->group(function () {
     // Ajax route
     Route::get('/grades/{grade}/students', [TestController::class, 'getStudentsByGrade'])->name('grades.students');
 });
+
+
+//Announcements Post
+  Route::get('/teacher/announcements',  [AnnouncementsController::class, 'index'])->name('teacher.announcements');
+  Route::post('/teacher/announcement', [AnnouncementsController::class, 'store'])->name('teacher.announcement');
+  Route::delete('/announcement/{id}', [AnnouncementsController::class, 'destroy'])->name('teacher.destroy');
+  
+
+
+
  // Assign tests
 Route::get('/tests/{id}/assign-form', [TestController::class, 'assignForm'])->name('tests.assign.form');
 Route::post('/tests/{id}/assign', [TestController::class, 'assignStore'])->name('tests.assign.store');

@@ -387,6 +387,15 @@
         <p>Track scores and progress of your students at a glance.</p>
         <button class="btn-card">View Reports</button>
       </div>
+
+      <div class="card">
+        <div class="card-icon">
+          <i class="bi bi-bell"></i>
+        </div>
+        <h3>Student Announcements</h3>
+        <p>Post students announcements here.</p>
+        <a href="{{route('teacher.announcements')}}" style="text-decoration:none; text-align:center;" class="btn-card">Announcements</a>
+      </div>
     </section>
 
     <!-- Recent Activity Section -->
