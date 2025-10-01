@@ -1,0 +1,128 @@
+/* ======================
+   General Reset
+====================== */
+body {
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background: #f5f7fa;
+  color: #343a40;
+  line-height: 1.6;
+}
+
+/* ======================
+   Navbar
+====================== */
+.navbar {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.navbar-brand {
+  font-size: 1.3rem;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+/* ======================
+   Sidebar
+====================== */
+.list-group {
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.list-group-item {
+  border: none;
+  padding: 14px 18px;
+  font-weight: 500;
+  font-size: 0.95rem;
+  transition: all 0.3s ease-in-out;
+}
+
+.list-group-item.active {
+  background: #0d6efd;
+  color: #fff;
+  font-weight: 600;
+  border-left: 5px solid #0a58ca;
+}
+
+.list-group-item:hover {
+  background: #f1f5ff;
+  color: #0d6efd;
+  transform: translateX(3px);
+}
+
+/* ======================
+   Main Content
+====================== */
+h3 {
+  font-weight: 600;
+  color: #212529;
+  margin-bottom: 1.5rem;
+}
+
+/* ======================
+   Cards
+====================== */
+.card {
+  border-radius: 14px;
+  border: none;
+  background: #fff;
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
+}
+
+.card-title {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: #0d6efd;
+  margin-bottom: 0.75rem;
+}
+
+.card-text {
+  font-size: 0.95rem;
+  color: #6c757d;
+  margin-bottom: 1rem;
+}
+
+/* ======================
+   Buttons
+====================== */
+.btn {
+  border-radius: 6px;
+  font-weight: 500;
+  padding: 8px 16px;
+  transition: all 0.3s ease-in-out;
+}
+
+.btn-primary:hover {
+  background: #0a58ca;
+  transform: scale(1.05);
+}
+
+.btn-success:hover {
+  background: #157347;
+  transform: scale(1.05);
+}
+
+.btn-info {
+  color: #fff;
+}
+
+.btn-info:hover {
+  background: #0dcaf0;
+  transform: scale(1.05);
+}
+
+/* ======================
+   Responsive Fix
+====================== */
+@media (max-width: 768px) {
+  .list-group {
+    margin-bottom: 1rem;
+  }
+}
