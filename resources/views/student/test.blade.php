@@ -6,6 +6,56 @@
     <p><strong>Subject:</strong> {{ $test->subject->name ?? 'N/A' }}</p>
     <p><strong>Deadline:</strong> {{ $test->scheduled_at ? $test->scheduled_at->format('d M Y H:i') : 'Not set' }}</p>
 
+    {{-- Check if deadline has passed --}}
+    @php
+        $now = now();
+        $deadlinePassed = $test->scheduled_at && $now->greaterThan($test->scheduled_at);
+        $existingSubmission = $existingAnswers->first(); // Get any existing answer
+    @endphp
+
+    @if($deadlinePassed)
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle"></i>
+            <strong>Test Deadline Passed</strong> - The submission deadline for this test was {{ $test->scheduled_at->format('d M Y H:i') }}.
+            You can no longer submit answers for this test.
+            <a href="{{ route('student.dashboard') }}" class="btn btn-outline-primary btn-sm ms-2">Return to Dashboard</a>
+        </div>
+    @endif
+
+    {{-- Display Success/Error Messages --}}
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle-fill"></i> {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    @if(session('error'))
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill"></i> {{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    @if(session('info'))
+        <div class="alert alert-info alert-dismissible fade show" role="alert">
+            <i class="bi bi-info-circle-fill"></i> {{ session('info') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    {{-- Show previous submission info --}}
+    @if($existingSubmission && !$deadlinePassed)
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i>
+            You have previously submitted this test on {{ $existingSubmission->created_at->format('d M Y H:i') }}.
+            @if($existingSubmission->answer_pdf_path)
+                <br><small>Submitted file: {{ $existingSubmission->answer_pdf_original_name }}</small>
+            @endif
+            <br><small><strong>Note:</strong> You can submit again before the deadline. Your latest submission will be considered.</small>
+        </div>
+    @endif
+
     {{-- PDF Question Paper Section --}}
     @if($test->has_pdf)
         <div class="card mb-4">
@@ -44,115 +94,156 @@
         </div>
 
         {{-- PDF Answer Submission Section --}}
-        <div class="card">
-            <div class="card-header bg-success text-white">
-                <h5 class="mb-0">
-                    <i class="bi bi-upload"></i>
-                    Submit Your Answer
-                </h5>
-            </div>
-            <div class="card-body">
-                <form action="{{ route('student.tests.submit', $test->id) }}" method="POST" enctype="multipart/form-data">
-                    @csrf
+        @if(!$deadlinePassed)
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-upload"></i>
+                        Submit Your Answer
+                    </h5>
+                </div>
+                <div class="card-body">
+                   <form action="{{ route('student.tests.submit-pdf', $test->id) }}" method="POST" enctype="multipart/form-data">
+                        @csrf
 
-                    <div class="mb-3">
-                        <label for="answer_pdf" class="form-label">
-                            <strong>Upload Your Completed Answer PDF</strong>
-                        </label>
-                        <input type="file"
-                               class="form-control"
-                               id="answer_pdf"
-                               name="answer_pdf"
-                               accept=".pdf"
-                               required>
-                        <div class="form-text">
-                            Upload your completed answer sheet as a PDF file (Max: 10MB)
+                        <div class="mb-3">
+                            <label for="answer_pdf" class="form-label">
+                                <strong>Upload Your Completed Answer PDF</strong>
+                            </label>
+                            <input type="file"
+                                   class="form-control @error('answer_pdf') is-invalid @enderror"
+                                   id="answer_pdf"
+                                   name="answer_pdf"
+                                   accept=".pdf"
+                                   required>
+                            <div class="form-text">
+                                Upload your completed answer sheet as a PDF file (Max: 10MB)
+                            </div>
+
+                            {{-- Display PDF upload errors --}}
+                            @error('answer_pdf')
+                                <div class="invalid-feedback">
+                                    <i class="bi bi-exclamation-circle"></i> {{ $message }}
+                                </div>
+                            @enderror
                         </div>
-                    </div>
 
-                    <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-send"></i> Submit Answer PDF
-                    </button>
-                </form>
+                        <button type="submit" class="btn btn-primary" id="submitBtn">
+                            <i class="bi bi-send"></i>
+                            @if($existingSubmission)
+                                Update Submission
+                            @else
+                                Submit Answer PDF
+                            @endif
+                        </button>
+
+                        @if($existingSubmission)
+                            <div class="form-text text-warning mt-2">
+                                <i class="bi bi-exclamation-triangle"></i>
+                                Submitting again will replace your previous submission.
+                            </div>
+                        @endif
+                    </form>
+                </div>
             </div>
-        </div>
+        @endif
 
     {{-- Regular Questions Section --}}
     @else
-        <form action="{{ route('student.tests.submit', $test->id) }}" method="POST">
-            @csrf
+        @if(!$deadlinePassed)
+            <form action="{{ route('student.tests.submit', $test->id) }}" method="POST">
+                @csrf
 
-            <div class="card">
-                <div class="card-header bg-info text-white">
-                    <h5 class="mb-0">Test Questions</h5>
-                </div>
-                <div class="card-body">
-                    <ol>
-                        @foreach($test->questions as $question)
-                            <li class="mb-4">
-                                <p>
-                                    <strong>{{ $question->question_text }}</strong>
-                                    <em>({{ ucfirst($question->type) }}, {{ $question->marks }} marks)</em>
-                                </p>
+                <div class="card">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0">Test Questions</h5>
+                    </div>
+                    <div class="card-body">
+                        <ol>
+                            @foreach($test->questions as $question)
+                                <li class="mb-4">
+                                    <p>
+                                        <strong>{{ $question->question_text }}</strong>
+                                        <em>({{ ucfirst($question->type) }}, {{ $question->marks }} marks)</em>
+                                    </p>
 
-                                {{-- Multiple Choice --}}
-                                @if($question->type === 'mcq' && $question->options)
-                                    @foreach(json_decode($question->options) as $index => $option)
-                                        <div class="form-check">
-                                            <input type="radio"
-                                                   name="answers[{{ $question->id }}]"
-                                                   value="{{ $option }}"
-                                                   class="form-check-input"
-                                                   id="q{{ $question->id }}_{{ $index }}">
-                                            <label for="q{{ $question->id }}_{{ $index }}" class="form-check-label">
-                                                {{ $option }}
-                                            </label>
+                                    {{-- Multiple Choice --}}
+                                    @if($question->type === 'mcq' && $question->options)
+                                        @foreach(json_decode($question->options) as $index => $option)
+                                            <div class="form-check">
+                                                <input type="radio"
+                                                       name="answers[{{ $question->id }}]"
+                                                       value="{{ $option }}"
+                                                       class="form-check-input"
+                                                       id="q{{ $question->id }}_{{ $index }}"
+                                                       {{ ($existingAnswers->get($question->id)?->answer ?? '') === $option ? 'checked' : '' }}
+                                                       required>
+                                                <label for="q{{ $question->id }}_{{ $index }}" class="form-check-label">
+                                                    {{ $option }}
+                                                </label>
+                                            </div>
+                                        @endforeach
+
+                                    {{-- Written --}}
+                                    @elseif($question->type === 'written')
+                                        @php
+                                            $previousAnswer = $existingAnswers->get($question->id)?->answer ?? '';
+                                        @endphp
+                                        <textarea id="text-answer-{{ $question->id }}"
+                                                  name="answers[{{ $question->id }}]"
+                                                  class="form-control mb-2"
+                                                  rows="3"
+                                                  placeholder="Write your answer here..."
+                                                  required>{{ $previousAnswer }}</textarea>
+
+                                        {{-- Whiteboard Toggle --}}
+                                        <button type="button"
+                                                class="btn btn-outline-primary btn-sm mb-2"
+                                                onclick="toggleWhiteboard({{ $question->id }})">
+                                            📝 Open Whiteboard
+                                        </button>
+
+                                        <div id="whiteboard-container-{{ $question->id }}" class="d-none mb-3">
+                                            <div class="toolbar mb-2">
+                                                <button type="button" class="btn btn-sm btn-dark" onclick="setTool({{ $question->id }}, 'pen')">✏️ Pen</button>
+                                                <button type="button" class="btn btn-sm btn-secondary" onclick="setTool({{ $question->id }}, 'eraser')">🧽 Eraser</button>
+                                                <button type="button" class="btn btn-sm btn-danger" onclick="clearBoard({{ $question->id }})">🗑️ Clear</button>
+                                                <button type="button" class="btn btn-sm btn-warning" onclick="undo({{ $question->id }})">↩️ Undo</button>
+                                                <input type="color" id="color-{{ $question->id }}" onchange="setColor({{ $question->id }}, this.value)">
+                                            </div>
+
+                                            <canvas id="canvas-{{ $question->id }}" width="600" height="300" class="border rounded w-100"></canvas>
+                                            <input type="hidden" name="whiteboard_answers[{{ $question->id }}]" id="whiteboard-input-{{ $question->id }}">
                                         </div>
-                                    @endforeach
+                                    @endif
+                                </li>
+                            @endforeach
+                        </ol>
 
-                                {{-- Written --}}
-                                @elseif($question->type === 'written')
-                                    <textarea id="text-answer-{{ $question->id }}"
-                                              name="answers[{{ $question->id }}]"
-                                              class="form-control mb-2"
-                                              rows="3"
-                                              placeholder="Write your answer here..."></textarea>
+                        <button type="submit" class="btn btn-success" onclick="saveAllWhiteboards()">
+                            <i class="bi bi-send"></i>
+                            @if($existingSubmission)
+                                Update Test Submission
+                            @else
+                                Submit Test
+                            @endif
+                        </button>
 
-                                    {{-- Whiteboard Toggle --}}
-                                    <button type="button"
-                                            class="btn btn-outline-primary btn-sm mb-2"
-                                            onclick="toggleWhiteboard({{ $question->id }})">
-                                        📝 Open Whiteboard
-                                    </button>
-
-                                    <div id="whiteboard-container-{{ $question->id }}" class="d-none mb-3">
-                                        <div class="toolbar mb-2">
-                                            <button type="button" class="btn btn-sm btn-dark" onclick="setTool({{ $question->id }}, 'pen')">✏️ Pen</button>
-                                            <button type="button" class="btn btn-sm btn-secondary" onclick="setTool({{ $question->id }}, 'eraser')">🧽 Eraser</button>
-                                            <button type="button" class="btn btn-sm btn-danger" onclick="clearBoard({{ $question->id }})">🗑️ Clear</button>
-                                            <button type="button" class="btn btn-sm btn-warning" onclick="undo({{ $question->id }})">↩️ Undo</button>
-                                            <input type="color" id="color-{{ $question->id }}" onchange="setColor({{ $question->id }}, this.value)">
-                                        </div>
-
-                                        <canvas id="canvas-{{ $question->id }}" width="600" height="300" class="border rounded w-100"></canvas>
-                                        <input type="hidden" name="whiteboard_answers[{{ $question->id }}]" id="whiteboard-input-{{ $question->id }}">
-                                    </div>
-                                @endif
-                            </li>
-                        @endforeach
-                    </ol>
-
-                    <button type="submit" class="btn btn-success" onclick="saveAllWhiteboards()">
-                        <i class="bi bi-send"></i> Submit Test
-                    </button>
+                        @if($existingSubmission)
+                            <div class="form-text text-warning mt-2">
+                                <i class="bi bi-exclamation-triangle"></i>
+                                Submitting again will replace your previous answers.
+                            </div>
+                        @endif
+                    </div>
                 </div>
-            </div>
-        </form>
+            </form>
+        @endif
     @endif
 </div>
 
 {{-- Fabric.js --}}
-@if(!$test->has_pdf)
+@if(!$test->has_pdf && !$deadlinePassed)
 <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
 
 <script>
@@ -278,5 +369,65 @@ function saveAllWhiteboards() {
     border-radius: 8px;
     border: none;
 }
+
+.invalid-feedback {
+    display: block;
+}
 </style>
+
+{{-- Add JavaScript for better UX --}}
+<script>
+// Show loading state when submitting PDF
+document.addEventListener('DOMContentLoaded', function() {
+    const pdfForm = document.querySelector('form[action*="submit-pdf"]');
+    const submitBtn = document.getElementById('submitBtn');
+
+    if (pdfForm && submitBtn) {
+        pdfForm.addEventListener('submit', function() {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Uploading...';
+        });
+    }
+
+    // Auto-dismiss alerts after 5 seconds
+    setTimeout(() => {
+        const alerts = document.querySelectorAll('.alert');
+        alerts.forEach(alert => {
+            const bsAlert = new bootstrap.Alert(alert);
+            bsAlert.close();
+        });
+    }, 5000);
+
+    // Show time remaining until deadline
+    @if($test->scheduled_at && !$deadlinePassed)
+        const deadline = new Date('{{ $test->scheduled_at }}');
+        function updateCountdown() {
+            const now = new Date();
+            const timeLeft = deadline - now;
+
+            if (timeLeft <= 0) {
+                document.getElementById('countdown').innerHTML = '<strong>Time\'s up!</strong>';
+                location.reload(); // Reload to show deadline passed message
+                return;
+            }
+
+            const hours = Math.floor(timeLeft / (1000 * 60 * 60));
+            const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+
+            document.getElementById('countdown').innerHTML =
+                `<strong>Time remaining:</strong> ${hours}h ${minutes}m ${seconds}s`;
+        }
+
+        // Add countdown element
+        const countdownEl = document.createElement('div');
+        countdownEl.className = 'alert alert-info';
+        countdownEl.id = 'countdown';
+        document.querySelector('.container').insertBefore(countdownEl, document.querySelector('.container').firstChild);
+
+        updateCountdown();
+        setInterval(updateCountdown, 1000);
+    @endif
+});
+</script>
 @endsection

@@ -11,11 +11,25 @@ class TestAnswer extends Model
 
     protected $fillable = [
         'test_id',
-        'question_id',
         'student_id',
+        'question_id',
         'answer',
+        'marks',
+        'max_marks',
+        'marking_status',
+        'marked_at',
+        'answer_pdf_path',
+        'answer_pdf_original_name'
     ];
 
+    // Add this cast
+    protected $casts = [
+        'marked_at' => 'datetime',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+    ];
+
+    // Your existing relationships...
     public function test()
     {
         return $this->belongsTo(Test::class);

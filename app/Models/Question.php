@@ -13,17 +13,22 @@ class Question extends Model
         'marks',
         'options',
         'correct_answer',
-        'is_pdf_question', // ADD THIS
-        'contains_math',   // ADD THIS
+        'is_pdf_question',
+        'contains_math',
     ];
 
     protected $casts = [
-        'options' => 'array', // automatically cast JSON to array
-        'is_pdf_question' => 'boolean', // ADD THIS
+        'options' => 'array',
+        'is_pdf_question' => 'boolean',
     ];
 
     public function test()
     {
         return $this->belongsTo(Test::class);
+    }
+
+    public function testAnswers()
+    {
+        return $this->hasMany(TestAnswer::class);
     }
 }

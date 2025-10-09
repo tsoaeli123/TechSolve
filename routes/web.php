@@ -13,7 +13,29 @@ use App\Http\Controllers\SubmissionController;
 | Web Routes
 |--------------------------------------------------------------------------
 */
+// Add to routes/web.php for testing
+Route::post('/test-pdf-upload', function(Request $request) {
+    try {
+        if ($request->hasFile('marked_paper')) {
+            $file = $request->file('marked_paper');
+            $path = $file->storeAs('test_uploads', 'test_' . time() . '.pdf', 'public');
 
+            return response()->json([
+                'success' => true,
+                'path' => $path,
+                'exists' => Storage::disk('public')->exists($path),
+                'url' => Storage::disk('public')->url($path),
+                'size' => Storage::disk('public')->size($path)
+            ]);
+        }
+        return response()->json(['success' => false, 'message' => 'No file']);
+    } catch (\Exception $e) {
+        return response()->json(['success' => false, 'error' => $e->getMessage()]);
+    }
+});
+// Student report routes
+Route::get('/student/report', [TestController::class, 'studentReport'])->name('student.report');
+Route::get('/student/report/download', [TestController::class, 'downloadStudentReport'])->name('student.report.download');
 // ---------------- HOME ----------------
 Route::get('/', fn() => view('welcome'))->name('home');
 
@@ -33,14 +55,16 @@ Route::middleware('auth')->group(function () {
 // ---------------- STUDENT ROUTES ----------------
 Route::middleware('auth')->group(function () {
     Route::get('/student/dashboard', [TestController::class, 'dashboard'])->name('student.dashboard');
+    Route::get('/student/results', [TestController::class, 'results'])->name('student.results'); // ADDED THIS ROUTE
     Route::get('/student/tests/{test}', [TestController::class, 'take'])->name('student.tests.show');
     Route::post('/student/tests/{test}/submit', [TestController::class, 'submit'])->name('student.tests.submit');
 
-    // FIXED: Student PDF viewing route - changed from viewPdf to viewStudentPdf
+    // Student PDF viewing route
     Route::get('/student/tests/{test}/view-pdf', [TestController::class, 'viewStudentPdf'])->name('student.tests.view-pdf');
-});
 
-Route::post('/tests/{test}/submissions/{student}/grade', [SubmissionController::class, 'grade'])->name('submissions.grade');
+    // Student PDF answer submission route
+    Route::post('/student/tests/{test}/submit-pdf', [TestController::class, 'submitPdfAnswer'])->name('student.tests.submit-pdf');
+});
 
 // ---------------- TEACHER ROUTES ----------------
 Route::middleware('auth')->group(function () {
@@ -51,8 +75,17 @@ Route::middleware('auth')->group(function () {
 
     // PDF routes for teachers
     Route::get('/tests/{test}/pdf', [TestController::class, 'viewPdf'])->name('tests.view.pdf');
+    Route::get('/tests/{test}/download-pdf', [TestController::class, 'downloadPdf'])->name('tests.download.pdf');
     Route::get('/answers/{answer}/download-pdf', [TestController::class, 'downloadAnswerPdf'])->name('answers.download.pdf');
     Route::get('/answers/{answer}/view-pdf', [TestController::class, 'viewAnswerPdf'])->name('answers.view.pdf');
+
+    // Teacher PDF management routes
+    Route::post('/tests/{test}/replace-pdf', [TestController::class, 'replacePdf'])->name('tests.replace.pdf');
+    Route::delete('/tests/{test}/remove-pdf', [TestController::class, 'removePdf'])->name('tests.remove.pdf');
+
+    // Teacher student answer PDF viewing routes
+    Route::get('/teacher/tests/{test}/answers/{answerId}/view-pdf', [TestController::class, 'viewStudentAnswerPdf'])->name('teacher.tests.answers.view-pdf');
+    Route::get('/teacher/tests/{test}/answers/{answerId}/download-pdf', [TestController::class, 'downloadStudentAnswerPdf'])->name('teacher.tests.answers.download-pdf');
 
     // Ajax route
     Route::get('/grades/{grade}/students', [TestController::class, 'getStudentsByGrade'])->name('grades.students');
@@ -72,6 +105,9 @@ Route::middleware(['auth'])->group(function () {
         ->name('tests.submissions');
 });
 
+// ---------------- ADD ONLY THIS NEW ROUTE FOR GRADING ----------------
+Route::post('/tests/{test}/submissions/{studentId}/grade', [TestController::class, 'gradeSubmissions'])->name('submissions.grade');
+
 // ---------------- ADMIN ROUTES ----------------
 Route::middleware('auth')->group(function () {
     Route::get('/admin/dashboard', fn() => view('admin.dashboard'))->name('admin.dashboard');
@@ -84,6 +120,144 @@ Route::put('/teacher/profile', [TeacherProfileController::class, 'updateProfile'
 Route::delete('/teacher/profile', [TeacherProfileController::class, 'destroyProfile'])->name('teacher.profile.destroy');
 
 // ---------------- DEBUG ROUTES ----------------
+Route::get('/debug/check-storage', function() {
+    echo "<h2>Storage Debug Information</h2>";
+
+    // Check storage directory
+    $studentAnswersPath = storage_path('app/public/student_answers');
+    echo "Student Answers Path: " . $studentAnswersPath . "<br>";
+    echo "Directory exists: " . (file_exists($studentAnswersPath) ? 'YES' : 'NO') . "<br>";
+
+    if (file_exists($studentAnswersPath)) {
+        $files = scandir($studentAnswersPath);
+        echo "Files in student_answers:<br>";
+        foreach ($files as $file) {
+            if ($file != '.' && $file != '..') {
+                $filePath = $studentAnswersPath . '/' . $file;
+                echo "- " . $file . " (" . filesize($filePath) . " bytes, " . date('Y-m-d H:i:s', filemtime($filePath)) . ")<br>";
+            }
+        }
+    }
+
+    // Check specific file from database
+    echo "<h3>Database PDF Records:</h3>";
+    $pdfAnswers = \App\Models\TestAnswer::where('answer', 'PDF_SUBMISSION')
+        ->whereNotNull('answer_pdf_path')
+        ->get();
+
+    foreach ($pdfAnswers as $answer) {
+        echo "Answer ID: " . $answer->id . "<br>";
+        echo "PDF Path: " . $answer->answer_pdf_path . "<br>";
+        echo "Original Name: " . $answer->answer_pdf_original_name . "<br>";
+
+        $fullPath = storage_path('app/public/' . $answer->answer_pdf_path);
+        echo "Full Path: " . $fullPath . "<br>";
+        echo "File exists: " . (file_exists($fullPath) ? 'YES' : 'NO') . "<br>";
+
+        if (file_exists($fullPath)) {
+            echo "File size: " . filesize($fullPath) . " bytes<br>";
+            echo "Storage URL: " . \Storage::disk('public')->url($answer->answer_pdf_path) . "<br>";
+
+            // Try to create a direct link
+            echo "<a href='" . \Storage::disk('public')->url($answer->answer_pdf_path) . "' target='_blank'>Open PDF Directly</a><br>";
+        }
+        echo "<hr>";
+    }
+
+    return "Debug complete";
+});
+
+Route::get('/debug/fix-pdf-storage', function() {
+    // Create storage directory if it doesn't exist
+    $studentAnswersPath = storage_path('app/public/student_answers');
+    if (!file_exists($studentAnswersPath)) {
+        mkdir($studentAnswersPath, 0755, true);
+        echo "Created directory: " . $studentAnswersPath . "<br>";
+    }
+
+    // Re-run storage link
+    \Artisan::call('storage:link');
+    echo "Storage link refreshed<br>";
+
+    return "Storage fix attempted";
+});
+
+Route::get('/debug/pdf-submission/{testId}', function($testId) {
+    $test = \App\Models\Test::find($testId);
+    $studentId = Auth::id();
+
+    echo "<h2>PDF Submission Debug</h2>";
+    echo "Test ID: " . $testId . "<br>";
+    echo "Student ID: " . $studentId . "<br>";
+    echo "Test Has PDF: " . ($test->has_pdf ? 'Yes' : 'No') . "<br>";
+
+    // Check existing submissions
+    $existing = \App\Models\TestAnswer::where('test_id', $testId)
+        ->where('student_id', $studentId)
+        ->first();
+
+    echo "Existing Submission: " . ($existing ? 'Yes' : 'No') . "<br>";
+    if ($existing) {
+        echo "PDF Path: " . ($existing->answer_pdf_path ?? 'NULL') . "<br>";
+        echo "PDF Original Name: " . ($existing->answer_pdf_original_name ?? 'NULL') . "<br>";
+    }
+
+    // Check storage directory
+    echo "<h3>Storage Check</h3>";
+    $files = \Storage::disk('public')->files('student_answers');
+    echo "Files in student_answers: " . count($files) . "<br>";
+    foreach ($files as $file) {
+        echo "- " . $file . " (" . \Storage::disk('public')->size($file) . " bytes)<br>";
+    }
+
+    return "<br>Debug complete";
+})->middleware('auth');
+
+Route::get('/debug/check-pdf-answer/{answerId}', function($answerId) {
+    $answer = \App\Models\TestAnswer::find($answerId);
+
+    if (!$answer) {
+        return "Answer not found";
+    }
+
+    echo "<h2>PDF Answer Debug - ID: {$answerId}</h2>";
+    echo "Test ID: " . $answer->test_id . "<br>";
+    echo "Student ID: " . $answer->student_id . "<br>";
+    echo "Answer Type: " . $answer->answer . "<br>";
+    echo "PDF Path: " . ($answer->answer_pdf_path ?? 'NULL') . "<br>";
+    echo "PDF Original Name: " . ($answer->answer_pdf_original_name ?? 'NULL') . "<br>";
+
+    if ($answer->answer_pdf_path) {
+        // Check storage
+        $exists = Storage::disk('public')->exists($answer->answer_pdf_path);
+        echo "Storage Exists: " . ($exists ? 'YES' : 'NO') . "<br>";
+
+        if ($exists) {
+            echo "File Size: " . Storage::disk('public')->size($answer->answer_pdf_path) . " bytes<br>";
+            echo "Storage URL: " . Storage::disk('public')->url($answer->answer_pdf_path) . "<br>";
+
+            // Try to show the PDF
+            echo "<h3>PDF Preview:</h3>";
+            echo "<iframe src='" . Storage::disk('public')->url($answer->answer_pdf_path) . "' width='100%' height='600px'></iframe>";
+        } else {
+            echo "<p style='color: red;'>File not found in storage!</p>";
+
+            // Check what files exist
+            echo "<h3>Files in student_answers directory:</h3>";
+            $files = Storage::disk('public')->files('student_answers');
+            if (count($files) > 0) {
+                foreach ($files as $file) {
+                    echo "- " . $file . " (" . Storage::disk('public')->size($file) . " bytes)<br>";
+                }
+            } else {
+                echo "No files found in student_answers directory<br>";
+            }
+        }
+    }
+
+    return "<br>Debug complete";
+})->middleware('auth');
+
 Route::get('/debug/pdf-storage', function() {
     echo "<h3>PDF Storage Debug</h3>";
 
@@ -156,6 +330,15 @@ Route::get('/debug/check-pdf/{testId}', function($testId) {
 
     return "<br>Debug complete";
 });
+// Add these routes in the TEACHER ROUTES section or STUDENT ROUTES section:
+
+// Student PDF viewing routes for marked answers
+Route::get('/student/answers/{answer}/view-marked-pdf', [TestController::class, 'viewStudentMarkedPdf'])->name('student.answers.view-marked-pdf');
+Route::get('/student/answers/{answer}/download-marked-pdf', [TestController::class, 'downloadStudentMarkedPdf'])->name('student.answers.download-marked-pdf');
+
+// Teacher PDF viewing routes for marked answers
+Route::get('/teacher/answers/{answer}/view-marked-pdf', [TestController::class, 'viewTeacherMarkedPdf'])->name('teacher.answers.view-marked-pdf');
+Route::get('/teacher/answers/{answer}/download-marked-pdf', [TestController::class, 'downloadTeacherMarkedPdf'])->name('teacher.answers.download-marked-pdf');
 
 // Test PDF upload route
 Route::get('/test-pdf-upload', function() {
