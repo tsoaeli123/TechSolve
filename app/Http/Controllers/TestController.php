@@ -509,74 +509,97 @@ class TestController extends Controller
     }
 
     public function submit(Request $request, Test $test)
-    {
-        $this->authorizeStudent();
+{
+    $this->authorizeStudent();
 
-        // Check if deadline has passed
-        if ($test->scheduled_at && now()->greaterThan($test->scheduled_at)) {
-            return back()->with('error', 'The submission deadline has passed. You can no longer submit this test.');
+    // Check if deadline has passed
+    if ($test->scheduled_at && now()->greaterThan($test->scheduled_at)) {
+        return back()->with('error', 'The submission deadline has passed. You can no longer submit this test.');
+    }
+
+    if ($test->has_pdf) {
+        return redirect()->back()->with('error', 'This test requires PDF submission. Please use the PDF upload form.');
+    }
+
+    $request->validate([
+        'answers' => 'required|array',
+    ]);
+
+    $studentId = Auth::id();
+    $test->load('questions');
+
+    // Delete existing answers for this test and student (to allow resubmission)
+    TestAnswer::where('test_id', $test->id)
+        ->where('student_id', $studentId)
+        ->delete();
+
+    foreach ($request->answers as $questionId => $answer) {
+        $question = $test->questions->firstWhere('id', $questionId);
+
+        if (!$question) {
+            continue; // Skip if question not found
         }
 
-        if ($test->has_pdf) {
-            return redirect()->back()->with('error', 'This test requires PDF submission. Please use the PDF upload form.');
-        }
+        $score = null;
+        $studentAnswer = is_array($answer) ? json_encode($answer) : $answer;
 
-        $request->validate([
-            'answers' => 'required|array',
-        ]);
+        // AUTOMATIC MARKING FOR MCQ - FIXED LOGIC
+        if ($question->type === 'mcq') {
+            $options = json_decode($question->options, true);
+            $correctIndex = (int)$question->correct_answer;
 
-        $studentId = Auth::id();
-        $test->load('questions');
+            // Get the correct answer value from options
+            $correctValue = $options[$correctIndex] ?? null;
 
-        // Delete existing answers for this test and student (to allow resubmission)
-        TestAnswer::where('test_id', $test->id)
-            ->where('student_id', $studentId)
-            ->delete();
+            // For MCQ, the answer should be a single value, not an array
+            $submittedAnswer = is_array($answer) ? $answer[0] ?? $answer : $answer;
 
-        foreach ($request->answers as $questionId => $answer) {
-            $question = $test->questions->firstWhere('id', $questionId);
-
-            $score = null;
-            $studentAnswer = is_array($answer) ? json_encode($answer) : $answer;
-
-            if ($question && $question->type === 'mcq') {
-                $options = json_decode($question->options, true);
-                $correctIndex = (int)$question->correct_answer;
-                $correctValue = $options[$correctIndex] ?? null;
-
-                $score = ($studentAnswer === $correctValue)
-                    ? $question->marks
-                    : 0;
+            // Compare the submitted answer with the correct value
+            if ($correctValue !== null && $submittedAnswer === $correctValue) {
+                $score = $question->marks; // Full marks for correct answer
+            } else {
+                $score = 0; // Zero for incorrect answer
             }
 
-            TestAnswer::create([
-                'test_id'     => $test->id,
-                'student_id'  => $studentId,
+            \Log::info("MCQ Auto-marking", [
                 'question_id' => $questionId,
-                'answer'      => $studentAnswer,
-                'score'       => $score,
-                'submitted_at' => now(),
+                'submitted_answer' => $submittedAnswer,
+                'correct_value' => $correctValue,
+                'score' => $score,
+                'marks' => $question->marks
             ]);
         }
+        // For written questions, score remains null (needs manual marking)
 
-        // Handle whiteboard answers
-        if ($request->whiteboard_answers) {
-            foreach ($request->whiteboard_answers as $questionId => $whiteboardData) {
-                // Update the answer with whiteboard data if needed
-                $whiteboardAnswer = TestAnswer::where('test_id', $test->id)
-                    ->where('student_id', $studentId)
-                    ->where('question_id', $questionId)
-                    ->first();
+        TestAnswer::create([
+            'test_id'     => $test->id,
+            'student_id'  => $studentId,
+            'question_id' => $questionId,
+            'answer'      => $studentAnswer,
+            'score'       => $score,
+            'marks'       => $score, // Also set marks field for consistency
+            'submitted_at' => now(),
+            'marking_status' => $question->type === 'mcq' ? 'completed' : 'pending',
+        ]);
+    }
 
-                if ($whiteboardAnswer) {
-                    $whiteboardAnswer->answer .= "\n\n[Whiteboard Answer Attached Below]\n" . $whiteboardData;
-                    $whiteboardAnswer->save();
-                }
+    // Handle whiteboard answers
+    if ($request->whiteboard_answers) {
+        foreach ($request->whiteboard_answers as $questionId => $whiteboardData) {
+            $whiteboardAnswer = TestAnswer::where('test_id', $test->id)
+                ->where('student_id', $studentId)
+                ->where('question_id', $questionId)
+                ->first();
+
+            if ($whiteboardAnswer) {
+                $whiteboardAnswer->answer .= "\n\n[Whiteboard Answer Attached Below]\n" . $whiteboardData;
+                $whiteboardAnswer->save();
             }
         }
-
-        return back()->with('success', 'Test submitted successfully!');
     }
+
+    return back()->with('success', 'Test submitted successfully!');
+}
 
     public function submitPdf(Request $request, Test $test)
     {
