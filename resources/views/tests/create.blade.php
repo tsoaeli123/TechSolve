@@ -1,3 +1,5 @@
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -526,6 +528,14 @@
                 <p class="mt-2 mb-0" id="previewFileName">PDF preview would appear here</p>
               </div>
             </div>
+
+            <!-- ADDED: PDF Marks Field -->
+            <div class="mt-4">
+              <label class="form-label">Marks for PDF Paper</label>
+              <input type="number" name="pdf_marks" class="form-control" id="pdfMarks"
+                     min="1" placeholder="Enter marks for this PDF paper">
+              <small class="text-muted">This will be the total marks for the PDF question paper</small>
+            </div>
           </div>
         </div>
 
@@ -540,7 +550,7 @@
     let qIndex = 1;
     let activeTextarea = null;
 
-    // Option tabs functionality - UPDATED
+    // Option tabs functionality
     document.querySelectorAll('.option-tab').forEach(tab => {
       tab.addEventListener('click', function() {
         // Remove active class from all tabs
@@ -557,22 +567,26 @@
         const targetId = this.getAttribute('data-target');
         document.getElementById(targetId).classList.add('active');
 
-        // FIX: Update the hidden field with the selected option
+        // Update the hidden field with the selected option
         const questionType = this.getAttribute('data-type');
         document.getElementById('questionType').value = questionType;
 
         console.log('Question type set to:', questionType);
 
-        // FIX: Remove required attribute from manual questions when PDF is selected
+        // Remove required attribute from manual questions when PDF is selected
         if (questionType === 'pdf') {
           document.querySelectorAll('#manual-questions input, #manual-questions select').forEach(field => {
             field.removeAttribute('required');
           });
+          // Add required to PDF marks
+          document.getElementById('pdfMarks').setAttribute('required', 'required');
         } else {
           // Add required attribute back when manual is selected
           document.querySelectorAll('#manual-questions input[name*="[text]"], #manual-questions select[name*="[type]"], #manual-questions input[name*="[marks]"]').forEach(field => {
             field.setAttribute('required', 'required');
           });
+          // Remove required from PDF marks
+          document.getElementById('pdfMarks').removeAttribute('required');
         }
       });
     });
@@ -735,6 +749,7 @@
     const fileSize = document.getElementById('fileSize');
     const previewFileName = document.getElementById('previewFileName');
     const removeFile = document.getElementById('removeFile');
+    const pdfMarks = document.getElementById('pdfMarks');
 
     // Click on upload area to trigger file input
     uploadArea.addEventListener('click', () => {
@@ -781,6 +796,7 @@
       fileInfo.style.display = 'none';
       pdfPreview.style.display = 'none';
       uploadArea.style.display = 'block';
+      pdfMarks.value = '';
     });
 
     // Handle file selection
@@ -810,7 +826,7 @@
       console.log('PDF file selected:', file.name);
     }
 
-    // Form submission validation - FIXED VERSION
+    // Form submission validation
     document.getElementById('testForm').addEventListener('submit', function(e) {
       const questionType = document.getElementById('questionType').value;
       let isValid = true;
@@ -823,12 +839,13 @@
         if (!pdfUpload.files.length) {
           isValid = false;
           errorMessage = 'Please upload a PDF file';
+        }
+        // Check if marks are entered for PDF
+        else if (!pdfMarks.value || pdfMarks.value < 1) {
+          isValid = false;
+          errorMessage = 'Please enter valid marks for the PDF paper';
         } else {
-          console.log('PDF file validated:', pdfUpload.files[0].name);
-          // FIX: Remove manual questions data when PDF is selected to prevent validation issues
-          document.querySelectorAll('.question-group').forEach(group => {
-            group.remove();
-          });
+          console.log('PDF file and marks validated');
         }
       } else {
         // Check if at least one question is created and has content
@@ -866,6 +883,7 @@
       console.log('Form submitted');
       console.log('Question type:', document.getElementById('questionType').value);
       console.log('PDF file:', pdfUpload.files[0]);
+      console.log('PDF Marks:', pdfMarks.value);
 
       const formData = new FormData(this);
       console.log('FormData contents:');

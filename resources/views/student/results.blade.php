@@ -381,28 +381,56 @@
         @foreach($completedTests as $testId => $answers)
           @php
             $test = $answers->first()->test;
+
+            // CORRECT CALCULATION - Fixed percentage issue
             $totalMarks = $answers->sum(function($answer) {
                 return $answer->marks ?? $answer->score ?? 0;
             });
-            $maxMarks = $answers->where(function($answer) {
-                return !is_null($answer->marks) || !is_null($answer->score);
-            })->count();
+
+            $totalPossibleMarks = $answers->sum(function($answer) {
+                return $answer->question->marks ?? 1;
+            });
+
+            // Calculate percentage safely
+            $percentage = $totalPossibleMarks > 0 ? round(($totalMarks / $totalPossibleMarks) * 100, 2) : 0;
+
+            // Determine performance level and color
+            if ($percentage >= 90) {
+                $performanceLevel = 'Excellent';
+                $performanceColor = 'success';
+            } elseif ($percentage >= 80) {
+                $performanceLevel = 'Very Good';
+                $performanceColor = 'info';
+            } elseif ($percentage >= 70) {
+                $performanceLevel = 'Good';
+                $performanceColor = 'primary';
+            } elseif ($percentage >= 60) {
+                $performanceLevel = 'Satisfactory';
+                $performanceColor = 'warning';
+            } elseif ($percentage >= 50) {
+                $performanceLevel = 'Average';
+                $performanceColor = 'secondary';
+            } else {
+                $performanceLevel = 'Needs Improvement';
+                $performanceColor = 'danger';
+            }
+
             $hasPdfSubmission = $answers->contains('answer', 'PDF_SUBMISSION');
             $hasMarkedPdf = $answers->contains('marked_pdf_path');
-            $percentage = $maxMarks > 0 ? round(($totalMarks / $maxMarks) * 100, 2) : 0;
 
             if ($hasPdfSubmission && $totalMarks == 0 && $hasMarkedPdf) {
                 $displayText = 'Marked on Paper';
                 $badgeColor = 'bg-info';
             } else {
-                $badgeColor = 'bg-success';
-                if ($percentage < 50) {
-                    $badgeColor = 'bg-danger';
-                } elseif ($percentage < 75) {
-                    $badgeColor = 'bg-warning';
-                }
+                $badgeColor = "bg-{$performanceColor}";
                 $displayText = $percentage . '%';
             }
+
+            // Calculate correct/incorrect answers
+            $correctAnswers = $answers->sum(function($answer) {
+                return ($answer->marks ?? $answer->score ?? 0) >= ($answer->question->marks ?? 1) ? 1 : 0;
+            });
+            $incorrectAnswers = $answers->count() - $correctAnswers;
           @endphp
 
           <div class="card">
@@ -425,10 +453,11 @@
                       <span class="ms-1">Paper Marked</span>
                     </div>
                   @else
+                    <!-- CORRECT SCORE DISPLAY -->
                     <div class="score-display">
                       <span class="fw-bold text-primary fs-4">{{ $totalMarks }}</span>
                       <span class="text-muted">/</span>
-                      <span class="fw-bold text-dark">{{ $maxMarks }}</span>
+                      <span class="fw-bold text-dark">{{ $totalPossibleMarks }}</span>
                     </div>
                   @endif
                 </div>
@@ -443,28 +472,53 @@
                   <div class="text-center p-3 bg-light rounded-3">
                     <i class="fas fa-check-circle text-success fa-2x mb-2"></i>
                     <h6 class="mb-1">Correct Answers</h6>
-                    <h4 class="text-success fw-bold">{{ $totalMarks }}</h4>
+                    <!-- CORRECT COUNT -->
+                    <h4 class="text-success fw-bold">{{ $correctAnswers }}</h4>
                   </div>
                 </div>
                 <div class="col-md-3">
                   <div class="text-center p-3 bg-light rounded-3">
                     <i class="fas fa-times-circle text-danger fa-2x mb-2"></i>
                     <h6 class="mb-1">Incorrect Answers</h6>
-                    <h4 class="text-danger fw-bold">{{ $maxMarks - $totalMarks }}</h4>
+                    <!-- CORRECT COUNT -->
+                    <h4 class="text-danger fw-bold">{{ $incorrectAnswers }}</h4>
                   </div>
                 </div>
                 <div class="col-md-3">
                   <div class="text-center p-3 bg-light rounded-3">
                     <i class="fas fa-chart-bar text-info fa-2x mb-2"></i>
                     <h6 class="mb-1">Total Questions</h6>
-                    <h4 class="text-info fw-bold">{{ $maxMarks }}</h4>
+                    <!-- CORRECT COUNT -->
+                    <h4 class="text-info fw-bold">{{ $answers->count() }}</h4>
                   </div>
                 </div>
                 <div class="col-md-3">
                   <div class="text-center p-3 bg-light rounded-3">
                     <i class="fas fa-percentage text-warning fa-2x mb-2"></i>
                     <h6 class="mb-1">Success Rate</h6>
+                    <!-- CORRECT PERCENTAGE -->
                     <h4 class="text-warning fw-bold">{{ $percentage }}%</h4>
+                  </div>
+                </div>
+              </div>
+              @endif
+
+              <!-- Performance Rating -->
+              @if(!($hasPdfSubmission && $totalMarks == 0 && $hasMarkedPdf))
+              <div class="row mb-4">
+                <div class="col-12">
+                  <div class="p-3 bg-light rounded-3">
+                    <div class="d-flex align-items-center justify-content-between">
+                      <div>
+                        <h6 class="text-dark mb-1 fw-bold">
+                          <i class="fas fa-chart-line me-2"></i>Performance Rating
+                        </h6>
+                        <small class="text-muted">Based on your test score</small>
+                      </div>
+                      <span class="badge bg-{{ $performanceColor }} performance-badge fs-6">
+                        {{ $performanceLevel }}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -534,7 +588,7 @@
                 @foreach($answers as $answer)
                   @php
                     $questionMarks = $answer->marks ?? $answer->score ?? 0;
-                    $maxQuestionMarks = 1;
+                    $maxQuestionMarks = $answer->question->marks ?? 1;
                     $isCorrect = $questionMarks >= $maxQuestionMarks;
                     $isPdfSubmission = $answer->answer === 'PDF_SUBMISSION';
                     $hasMarkedPdf = $answer->marked_pdf_path;
@@ -715,7 +769,7 @@
         </div>
       </div>
 
-      <!-- Subjects Grid -->
+      <!-- Subjects Grid - FIXED PERCENTAGE CALCULATION -->
       @if($subjects->count() > 0)
         <div class="row">
           @foreach($subjects as $subject)
@@ -724,15 +778,24 @@
                   return $answers->first()->test->subject_id == $subject->id;
               });
               $totalTests = $subjectTests->count();
-              $averageScore = $subjectTests->avg(function($answers) {
-                  $totalMarks = $answers->sum(function($answer) {
-                      return $answer->marks ?? $answer->score ?? 0;
-                  });
-                  $maxMarks = $answers->where(function($answer) {
-                      return !is_null($answer->marks) || !is_null($answer->score);
-                  })->count();
-                  return $maxMarks > 0 ? round(($totalMarks / $maxMarks) * 100, 2) : 0;
-              });
+
+              // CORRECT CALCULATION - Fixed the 5000% issue
+              $totalMarks = 0;
+              $totalPossibleMarks = 0;
+
+              foreach($subjectTests as $testAnswers) {
+                  foreach($testAnswers as $answer) {
+                      $totalMarks += $answer->marks ?? $answer->score ?? 0;
+                      $totalPossibleMarks += $answer->question->marks ?? 1;
+                  }
+              }
+
+              // SAFE PERCENTAGE CALCULATION
+              $averageScore = $totalPossibleMarks > 0 ? round(($totalMarks / $totalPossibleMarks) * 100, 2) : 0;
+
+              // Ensure percentage is reasonable (0-100)
+              $averageScore = min(100, max(0, $averageScore));
+
               $progressClass = 'bg-success';
               if ($averageScore < 50) $progressClass = 'bg-danger';
               elseif ($averageScore < 75) $progressClass = 'bg-warning';

@@ -46,77 +46,91 @@ class TestController extends Controller
     }
 
     public function store(Request $request)
-    {
-        $this->authorizeTeacher();
+{
+    $this->authorizeTeacher();
 
-        if ($request->question_type === 'pdf') {
-            $request->validate([
-                'title' => 'required|string|max:255',
-                'subject_id' => 'required|exists:subjects,id',
-                'scheduled_at' => 'required|date',
-                'question_pdf' => 'required|file|mimes:pdf|max:10240',
-            ]);
-        } else {
-            $request->validate([
-                'title' => 'required|string|max:255',
-                'subject_id' => 'required|exists:subjects,id',
-                'scheduled_at' => 'required|date',
-                'questions' => 'required|array|min:1',
-                'questions.*.text' => 'required',
-                'questions.*.type' => 'required|in:mcq,written',
-                'questions.*.options' => 'required_if:questions.*.type,mcq|nullable|string',
-                'questions.*.correct_answer' => 'required_if:questions.*.type,mcq|nullable|integer',
-                'questions.*.marks' => 'required|integer|min:1',
-            ]);
-        }
-
-        $test = Test::create([
-            'title'       => $request->title,
-            'subject_id'  => $request->subject_id,
-            'scheduled_at' => Carbon::parse($request->scheduled_at),
-            'teacher_id'  => Auth::id(),
-            'question_type' => $request->question_type,
+    if ($request->question_type === 'pdf') {
+        $request->validate([
+            'title' => 'required|string|max:255',
+            'subject_id' => 'required|exists:subjects,id',
+            'scheduled_at' => 'required|date',
+            'question_pdf' => 'required|file|mimes:pdf|max:10240',
+            'pdf_marks' => 'required|integer|min:1', // ADDED THIS
         ]);
-
-        if ($request->question_type === 'pdf' && $request->hasFile('question_pdf')) {
-            $pdfFile = $request->file('question_pdf');
-            $pdfPath = $pdfFile->store('test_pdfs', 'public');
-
-            $test->update([
-                'has_pdf' => true,
-                'pdf_path' => $pdfPath,
-                'pdf_original_name' => $pdfFile->getClientOriginalName(),
-            ]);
-        }
-        else if ($request->question_type === 'manual') {
-            foreach ($request->questions as $index => $q) {
-                $optionsArray = null;
-                $correctAnswer = null;
-
-                if ($q['type'] === 'mcq') {
-                    $optionsArray = !empty($q['options'])
-                        ? array_map('trim', explode(',', $q['options']))
-                        : null;
-
-                    $correctAnswer = isset($q['correct_answer'])
-                        ? (int)$q['correct_answer']
-                        : null;
-                }
-
-                $test->questions()->create([
-                    'question_text'  => $q['text'],
-                    'type'           => $q['type'],
-                    'marks'          => $q['marks'] ?? 1,
-                    'options'        => $optionsArray ? json_encode($optionsArray) : null,
-                    'correct_answer' => $correctAnswer,
-                    'contains_math'  => true,
-                ]);
-            }
-        }
-
-        return redirect()->route('tests.index')->with('success', 'Test created successfully.');
+    } else {
+        $request->validate([
+            'title' => 'required|string|max:255',
+            'subject_id' => 'required|exists:subjects,id',
+            'scheduled_at' => 'required|date',
+            'questions' => 'required|array|min:1',
+            'questions.*.text' => 'required',
+            'questions.*.type' => 'required|in:mcq,written',
+            'questions.*.options' => 'required_if:questions.*.type,mcq|nullable|string',
+            'questions.*.correct_answer' => 'required_if:questions.*.type,mcq|nullable|integer',
+            'questions.*.marks' => 'required|integer|min:1',
+        ]);
     }
 
+    $test = Test::create([
+        'title'       => $request->title,
+        'subject_id'  => $request->subject_id,
+        'scheduled_at' => Carbon::parse($request->scheduled_at),
+        'teacher_id'  => Auth::id(),
+        'question_type' => $request->question_type,
+        'total_marks' => $request->question_type === 'pdf' ? $request->pdf_marks : null, // ADDED THIS
+    ]);
+
+    if ($request->question_type === 'pdf' && $request->hasFile('question_pdf')) {
+        $pdfFile = $request->file('question_pdf');
+        $pdfPath = $pdfFile->store('test_pdfs', 'public');
+
+        $test->update([
+            'has_pdf' => true,
+            'pdf_path' => $pdfPath,
+            'pdf_original_name' => $pdfFile->getClientOriginalName(),
+            'total_marks' => $request->pdf_marks, // ADDED THIS
+        ]);
+
+        // Create a single question entry for the PDF
+        $test->questions()->create([
+            'question_text'  => 'PDF Question Paper: ' . $pdfFile->getClientOriginalName(),
+            'type'           => 'written',
+            'marks'          => $request->pdf_marks,
+            'contains_math'  => false,
+        ]);
+    }
+    else if ($request->question_type === 'manual') {
+        foreach ($request->questions as $index => $q) {
+            $optionsArray = null;
+            $correctAnswer = null;
+
+            if ($q['type'] === 'mcq') {
+                $optionsArray = !empty($q['options'])
+                    ? array_map('trim', explode(',', $q['options']))
+                    : null;
+
+                $correctAnswer = isset($q['correct_answer'])
+                    ? (int)$q['correct_answer']
+                    : null;
+            }
+
+            $test->questions()->create([
+                'question_text'  => $q['text'],
+                'type'           => $q['type'],
+                'marks'          => $q['marks'] ?? 1,
+                'options'        => $optionsArray ? json_encode($optionsArray) : null,
+                'correct_answer' => $correctAnswer,
+                'contains_math'  => true,
+            ]);
+        }
+
+        // Calculate total marks for manual tests
+        $totalMarks = collect($request->questions)->sum('marks');
+        $test->update(['total_marks' => $totalMarks]);
+    }
+
+    return redirect()->route('tests.index')->with('success', 'Test created successfully.');
+}
     public function viewSubmissions(Test $test)
     {
         $this->authorizeTeacher();
@@ -315,52 +329,59 @@ class TestController extends Controller
 
     // ---------------- STUDENT SIDE ---------------- //
 
-    public function dashboard()
-    {
-        $this->authorizeStudent();
+   // In your TestController.php - dashboard method
+public function dashboard()
+{
+    $this->authorizeStudent();
 
-        $studentClass = Auth::user()->class_grade;
+    $studentClass = Auth::user()->class_grade;
 
-        $tests = Test::whereHas('assignedTests', function($query) use ($studentClass) {
-            $query->where('class_grade', $studentClass);
-        })->with('subject')->get();
+    $tests = Test::whereHas('assignedTests', function($query) use ($studentClass) {
+        $query->where('class_grade', $studentClass);
+    })->with('subject')->get();
 
-        // Calculate stats for dashboard - FIXED QUERIES
-        $completedTests = TestAnswer::where('student_id', Auth::id())
-            ->where('marking_status', 'completed')
-            ->distinct('test_id')
-            ->count('test_id');
+    // Get completed tests with answers for correct calculation
+    $completedTestAnswers = TestAnswer::where('student_id', Auth::id())
+        ->where('marking_status', 'completed')
+        ->with(['test', 'question'])
+        ->get()
+        ->groupBy('test_id');
 
-        $pendingTests = $tests->count() - $completedTests;
+    $completedTests = $completedTestAnswers->count();
+    $pendingTests = $tests->count() - $completedTests;
 
-        // Calculate average score
-        $averageScore = TestAnswer::where('student_id', Auth::id())
-            ->where('marking_status', 'completed')
-            ->whereNotNull('marks')
-            ->avg('marks');
+    // CORRECT AVERAGE SCORE CALCULATION - Same as results page
+    $totalMarks = 0;
+    $totalPossibleMarks = 0;
 
-        // Format average score
-        $averageScore = $averageScore ? number_format($averageScore, 1) : 'N/A';
-
-        // Get recent results for display - FIXED QUERY
-        $recentResults = TestAnswer::where('student_id', Auth::id())
-            ->where('marking_status', 'completed')
-            ->whereNotNull('marks')
-            ->with(['test.subject', 'question'])
-            ->orderBy('marked_at', 'desc')
-            ->get()
-            ->groupBy('test_id')
-            ->take(3);
-
-        return view('student.dashboard', compact(
-            'tests',
-            'completedTests',
-            'pendingTests',
-            'averageScore',
-            'recentResults'
-        ));
+    foreach($completedTestAnswers as $testAnswers) {
+        foreach($testAnswers as $answer) {
+            $totalMarks += $answer->marks ?? $answer->score ?? 0;
+            $totalPossibleMarks += $answer->question->marks ?? 1;
+        }
     }
 
+    // Calculate percentage safely - THIS IS WHAT FIXES IT
+    $averageScore = $totalPossibleMarks > 0 ? round(($totalMarks / $totalPossibleMarks) * 100, 1) : 0;
+
+    // Get recent results for display
+    $recentResults = TestAnswer::where('student_id', Auth::id())
+        ->where('marking_status', 'completed')
+        ->whereNotNull('marks')
+        ->with(['test.subject', 'question'])
+        ->orderBy('marked_at', 'desc')
+        ->get()
+        ->groupBy('test_id')
+        ->take(3);
+
+    return view('student.dashboard', compact(
+        'tests',
+        'completedTests',
+        'pendingTests',
+        'averageScore', // This will now be 50.5 instead of 13.8
+        'recentResults'
+    ));
+}
     public function results(Request $request)
     {
         $studentId = Auth::id();
@@ -601,107 +622,119 @@ class TestController extends Controller
     return back()->with('success', 'Test submitted successfully!');
 }
 
-    public function submitPdf(Request $request, Test $test)
-    {
-        $this->authorizeStudent();
+   public function submitPdf(Request $request, Test $test)
+{
+    $this->authorizeStudent();
 
-        // Check if deadline has passed
-        if ($test->scheduled_at && now()->greaterThan($test->scheduled_at)) {
-            return back()->with('error', 'The submission deadline has passed. You can no longer submit this test.');
-        }
-
-        $request->validate([
-            'answer_pdf' => 'required|file|mimes:pdf|max:10240', // 10MB max
-        ]);
-
-        $studentId = Auth::id();
-
-        // Delete existing PDF submission for this test and student
-        TestAnswer::where('test_id', $test->id)
-            ->where('student_id', $studentId)
-            ->delete();
-
-        // Handle file upload
-        if ($request->hasFile('answer_pdf')) {
-            $file = $request->file('answer_pdf');
-            $filename = 'answer_' . $test->id . '_' . $studentId . '_' . time() . '.' . $file->getClientOriginalExtension();
-            $path = $file->storeAs('student_answers', $filename, 'public');
-
-            TestAnswer::create([
-                'test_id'     => $test->id,
-                'student_id'  => $studentId,
-                'answer'      => 'PDF_SUBMISSION',
-                'answer_pdf_path' => $path,
-                'answer_pdf_original_name' => $file->getClientOriginalName(),
-                'submitted_at' => now(),
-            ]);
-        }
-
-        return back()->with('success', 'PDF submitted successfully!');
+    // Check if deadline has passed
+    if ($test->scheduled_at && now()->greaterThan($test->scheduled_at)) {
+        return back()->with('error', 'The submission deadline has passed. You can no longer submit this test.');
     }
 
-    public function submitPdfAnswer(Request $request, Test $test)
-    {
-        $this->authorizeStudent();
+    $request->validate([
+        'answer_pdf' => 'required|file|mimes:pdf|max:10240',
+    ]);
 
-        \Log::info('=== PDF SUBMISSION ATTEMPT ===');
-        \Log::info('Test ID: ' . $test->id);
-        \Log::info('Student ID: ' . Auth::id());
-        \Log::info('Has File: ' . ($request->hasFile('answer_pdf') ? 'YES' : 'NO'));
+    $studentId = Auth::id();
 
-        if (!$test->has_pdf) {
-            return redirect()->back()->with('error', 'This test does not have a PDF question paper.');
-        }
+    // Delete existing PDF submission for this test and student
+    TestAnswer::where('test_id', $test->id)
+        ->where('student_id', $studentId)
+        ->delete();
 
-        $existingSubmission = TestAnswer::where('test_id', $test->id)
-            ->where('student_id', Auth::id())
-            ->first();
+    // Get the PDF question for this test
+    $pdfQuestion = $test->questions()->where('type', 'written')->first();
 
-        if ($existingSubmission) {
-            return redirect()->route('student.dashboard')
-                ->with('info', 'You have already submitted this test.');
-        }
-
-        $request->validate([
-            'answer_pdf' => 'required|file|mimes:pdf|max:10240',
-        ]);
-
-        try {
-            $pdfFile = $request->file('answer_pdf');
-            $filename = 'answer_' . $test->id . '_' . Auth::id() . '_' . time() . '.pdf';
-            $pdfPath = $pdfFile->storeAs('student_answers', $filename, 'public');
-
-            \Log::info('File stored at: ' . $pdfPath);
-            \Log::info('File exists: ' . (\Storage::disk('public')->exists($pdfPath) ? 'YES' : 'NO'));
-
-            $answerId = DB::table('test_answers')->insertGetId([
-                'test_id' => $test->id,
-                'student_id' => Auth::id(),
-                'question_id' => null,
-                'answer' => 'PDF_SUBMISSION',
-                'answer_pdf_path' => $pdfPath,
-                'answer_pdf_original_name' => $pdfFile->getClientOriginalName(),
-                'submitted_at' => now(),
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-
-            \Log::info('Database record created with ID: ' . $answerId);
-
-            return redirect()->route('student.dashboard')->with('success', 'PDF answer submitted successfully!');
-
-        } catch (\Exception $e) {
-            \Log::error('PDF SUBMISSION FAILED: ' . $e->getMessage());
-            \Log::error('Stack trace: ' . $e->getTraceAsString());
-
-            if (isset($pdfPath) && \Storage::disk('public')->exists($pdfPath)) {
-                \Storage::disk('public')->delete($pdfPath);
-            }
-
-            return redirect()->back()->with('error', 'Failed to submit PDF. Please try again.');
-        }
+    if (!$pdfQuestion) {
+        return redirect()->back()->with('error', 'PDF question not found for this test.');
     }
 
+    // Handle file upload
+    if ($request->hasFile('answer_pdf')) {
+        $file = $request->file('answer_pdf');
+        $filename = 'answer_' . $test->id . '_' . $studentId . '_' . time() . '.' . $file->getClientOriginalExtension();
+        $path = $file->storeAs('student_answers', $filename, 'public');
+
+        TestAnswer::create([
+            'test_id'     => $test->id,
+            'student_id'  => $studentId,
+            'question_id' => $pdfQuestion->id, // ← FIXED: Use the actual question ID
+            'answer'      => 'PDF_SUBMISSION',
+            'answer_pdf_path' => $path,
+            'answer_pdf_original_name' => $file->getClientOriginalName(),
+            'submitted_at' => now(),
+        ]);
+    }
+
+    return back()->with('success', 'PDF submitted successfully!');
+}
+   public function submitPdfAnswer(Request $request, Test $test)
+{
+    $this->authorizeStudent();
+
+    \Log::info('=== PDF SUBMISSION ATTEMPT ===');
+    \Log::info('Test ID: ' . $test->id);
+    \Log::info('Student ID: ' . Auth::id());
+
+    if (!$test->has_pdf) {
+        return redirect()->back()->with('error', 'This test does not have a PDF question paper.');
+    }
+
+    $existingSubmission = TestAnswer::where('test_id', $test->id)
+        ->where('student_id', Auth::id())
+        ->first();
+
+    if ($existingSubmission) {
+        return redirect()->route('student.dashboard')
+            ->with('info', 'You have already submitted this test.');
+    }
+
+    $request->validate([
+        'answer_pdf' => 'required|file|mimes:pdf|max:10240',
+    ]);
+
+    try {
+        // Get the PDF question for this test
+        $pdfQuestion = $test->questions()->where('type', 'written')->first();
+
+        if (!$pdfQuestion) {
+            return redirect()->back()->with('error', 'PDF question not found for this test.');
+        }
+
+        $pdfFile = $request->file('answer_pdf');
+        $filename = 'answer_' . $test->id . '_' . Auth::id() . '_' . time() . '.pdf';
+        $pdfPath = $pdfFile->storeAs('student_answers', $filename, 'public');
+
+        \Log::info('File stored at: ' . $pdfPath);
+        \Log::info('PDF Question ID: ' . $pdfQuestion->id);
+
+        $answerId = DB::table('test_answers')->insertGetId([
+            'test_id' => $test->id,
+            'student_id' => Auth::id(),
+            'question_id' => $pdfQuestion->id, // ← FIXED: Use the actual question ID
+            'answer' => 'PDF_SUBMISSION',
+            'answer_pdf_path' => $pdfPath,
+            'answer_pdf_original_name' => $pdfFile->getClientOriginalName(),
+            'submitted_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        \Log::info('Database record created with ID: ' . $answerId);
+
+        return redirect()->route('student.dashboard')->with('success', 'PDF answer submitted successfully!');
+
+    } catch (\Exception $e) {
+        \Log::error('PDF SUBMISSION FAILED: ' . $e->getMessage());
+        \Log::error('Stack trace: ' . $e->getTraceAsString());
+
+        if (isset($pdfPath) && \Storage::disk('public')->exists($pdfPath)) {
+            \Storage::disk('public')->delete($pdfPath);
+        }
+
+        return redirect()->back()->with('error', 'Failed to submit PDF. Please try again.');
+    }
+}
     // ---------------- STUDENT RESULTS ---------------- //
 
     /**

@@ -18,7 +18,12 @@
                     <span class="ms-3 text-muted">ID: {{ $answers->first()->student->id }}</span>
                 </div>
                 <span class="badge bg-primary">
-                    Total Marks: {{ $answers->sum(function($answer) { return $answer->question ? $answer->question->marks : 0; }) }}
+                    Total Marks:
+                    @if($test->question_type === 'pdf')
+                        {{ $test->total_marks ?? 'N/A' }}
+                    @else
+                        {{ $answers->sum(function($answer) { return $answer->question ? $answer->question->marks : 0; }) }}
+                    @endif
                 </span>
             </a>
 
@@ -53,7 +58,13 @@
                                             @endif
                                         </h6>
                                         <span class="fw-bold">
-                                            ( {{ $answer->question ? $answer->question->marks : 'N/A' }} marks )
+                                            (
+                                            @if($test->question_type === 'pdf')
+                                                {{ $test->total_marks ?? 'N/A' }}
+                                            @else
+                                                {{ $answer->question ? $answer->question->marks : 'N/A' }}
+                                            @endif
+                                             marks )
                                         </span>
                                     </div>
 
@@ -216,10 +227,16 @@
                                                    name="marks[{{ $answer->id }}]"
                                                    class="form-control marks-input me-2"
                                                    style="width: 80px;" min="0"
-                                                   max="{{ $answer->question ? $answer->question->marks : 100 }}"
+                                                   max="{{ $test->question_type === 'pdf' ? ($test->total_marks ?? 100) : ($answer->question ? $answer->question->marks : 100) }}"
                                                    value="{{ $answer->marks ?? '' }}"
                                                    placeholder="0">
-                                            <span>/ {{ $answer->question ? $answer->question->marks : 'N/A' }}</span>
+                                            <span>/
+                                                @if($test->question_type === 'pdf')
+                                                    {{ $test->total_marks ?? 'N/A' }}
+                                                @else
+                                                    {{ $answer->question ? $answer->question->marks : 'N/A' }}
+                                                @endif
+                                            </span>
                                         </div>
                                         <div>
                                             <label><strong>Comments:</strong></label>
@@ -242,7 +259,12 @@
                             <div class="total-section border-top pt-3 mt-4">
                                 <h5>Total Marks:
                                     <span class="total-marks-display">0</span>
-                                    / {{ $answers->sum(function($answer) { return $answer->question ? $answer->question->marks : 0; }) }}
+                                    /
+                                    @if($test->question_type === 'pdf')
+                                        {{ $test->total_marks ?? 'N/A' }}
+                                    @else
+                                        {{ $answers->sum(function($answer) { return $answer->question ? $answer->question->marks : 0; }) }}
+                                    @endif
                                 </h5>
                             </div>
 

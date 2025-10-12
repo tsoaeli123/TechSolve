@@ -336,7 +336,7 @@
         <div class="stat-label">Tests Completed</div>
       </div>
       <div class="stat-card">
-        <div class="stat-number">{{ $averageScore }}</div>
+        <div class="stat-number">{{ $averageScore }}%</div>
         <div class="stat-label">Average Score</div>
       </div>
       <div class="stat-card">
@@ -434,7 +434,7 @@
         <div class="activity-item">
           <i class="bi bi-trophy-fill text-warning"></i>
           <div class="activity-content">
-            <span>Average score: {{ $averageScore }}</span>
+            <span>Average score: {{ $averageScore }}%</span>
             <small>Your current performance</small>
           </div>
         </div>
