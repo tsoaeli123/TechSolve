@@ -311,6 +311,8 @@
       <li><a href="#"><i class="bi bi-pencil-square"></i> <span>Grade Answers</span></a></li>
       <li><a href="#"><i class="bi bi-graph-up"></i> <span>Publish Results</span></a></li>
       <li><a href="#"><i class="bi bi-people"></i> <span>Student Performance</span></a></li>
+      <li><a href="{{route('teacher.examPdf')}}"><i class="bi bi-upload"></i> <span>Upload Exam Pdf</span></a></li>
+       <li><a href="{{route('teacher.message')}}"><i class="bi bi-envelop"></i> <span>Messaging</span></a></li>
       <li>
         <!-- Logout Form -->
         <form method="POST" action="{{ route('logout') }}">

@@ -7,6 +7,9 @@ use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\TeacherProfileController;
 use App\Http\Controllers\AnnouncementsController;
 use App\Http\Controllers\SubmissionController;
+use App\Http\Controllers\ExamPdfController;
+use App\Http\Controllers\SMSController;
+use App\Http\Controllers\EmailController;
 
 /*
 |--------------------------------------------------------------------------
@@ -95,6 +98,22 @@ Route::middleware('auth')->group(function () {
 Route::get('/teacher/announcements',  [AnnouncementsController::class, 'index'])->name('teacher.announcements');
 Route::post('/teacher/announcement', [AnnouncementsController::class, 'store'])->name('teacher.announcement');
 Route::delete('/announcement/{id}', [AnnouncementsController::class, 'destroy'])->name('teacher.destroy');
+
+
+//upload exap pdf papers
+Route::get('/teacher/examPdf',  [ExamPdfController::class, 'index'])->name('teacher.examPdf');
+Route::post('/teacher/examPaper',  [ExamPdfController::class, 'store'])->name('teacher.examPaper');
+
+
+//students messaging
+Route::get('/teacher/message',  [SMSController::class, 'index'])->name('teacher.message');
+Route::post('/send',  [SMSController::class, 'send'])->name('teacher.send');
+
+//Email attachments
+Route::post('/email',  [EmailController::class, 'mail'])->name('teacher.mail');
+
+
+
 
 // Assign tests
 Route::get('/tests/{id}/assign-form', [TestController::class, 'assignForm'])->name('tests.assign.form');
