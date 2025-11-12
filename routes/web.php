@@ -7,7 +7,7 @@ use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\TeacherProfileController;
 use App\Http\Controllers\AnnouncementsController;
 use App\Http\Controllers\SubmissionController;
-
+use App\Http\Controllers\TeacherMaterialController;
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -33,6 +33,13 @@ Route::post('/test-pdf-upload', function(Request $request) {
         return response()->json(['success' => false, 'error' => $e->getMessage()]);
     }
 });
+// routes/web.php
+
+Route::middleware(['auth'])->prefix('teacher')->group(function () {
+    Route::get('/materials', [TeacherMaterialController::class, 'index'])->name('teacher.materials.index');
+    Route::get('/materials/create', [TeacherMaterialController::class, 'create'])->name('teacher.materials.create');
+    Route::post('/materials', [TeacherMaterialController::class, 'store'])->name('teacher.materials.store');
+});
 // Student report routes
 Route::get('/student/report', [TestController::class, 'studentReport'])->name('student.report');
 Route::get('/student/report/download', [TestController::class, 'downloadStudentReport'])->name('student.report.download');
@@ -44,6 +51,46 @@ Route::middleware('guest')->group(function () {
     Route::get('/register', [RegisteredUserController::class, 'create'])->name('register');
     Route::post('/register', [RegisteredUserController::class, 'store']);
 });
+
+Route::get('/download-material/{materialId}', function($materialId) {
+    $material = \App\Models\Material::findOrFail($materialId);
+    $student = Auth::user();
+
+    // Check if material is for student's class
+    if (!in_array($student->class_grade, $material->target_classes)) {
+        abort(403, 'Unauthorized access to this material.');
+    }
+
+    if (!\Storage::disk('public')->exists($material->file_path)) {
+        abort(404, 'File not found in storage.');
+    }
+
+    return \Storage::disk('public')->download(
+        $material->file_path,
+        $material->file_name
+    );
+})->name('material.download')->middleware('auth');
+
+Route::get('/view-material/{materialId}', function($materialId) {
+    $material = \App\Models\Material::findOrFail($materialId);
+    $student = Auth::user();
+
+    // Check if material is for student's class
+    if (!in_array($student->class_grade, $material->target_classes)) {
+        abort(403, 'Unauthorized access to this material.');
+    }
+
+    if (!\Storage::disk('public')->exists($material->file_path)) {
+        abort(404, 'File not found in storage.');
+    }
+
+    $path = storage_path('app/public/' . $material->file_path);
+
+    return response()->file($path, [
+        'Content-Type' => 'application/pdf',
+        'Content-Disposition' => 'inline; filename="' . $material->file_name . '"'
+    ]);
+})->name('material.view')->middleware('auth');
 
 // ---------------- PROFILE (AUTH) ----------------
 Route::middleware('auth')->group(function () {
@@ -91,6 +138,49 @@ Route::middleware('auth')->group(function () {
     Route::get('/grades/{grade}/students', [TestController::class, 'getStudentsByGrade'])->name('grades.students');
 });
 
+// Debug route for test timing - ADD THIS
+Route::get('/debug-test-timing/{testId}', function($testId) {
+    $test = \App\Models\Test::find($testId);
+
+    if (!$test) {
+        return "Test not found";
+    }
+
+    $debugInfo = $test->debugTiming();
+
+    echo "<h2>Test Timing Debug</h2>";
+    echo "<pre>" . json_encode($debugInfo, JSON_PRETTY_PRINT) . "</pre>";
+
+    echo "<h3>Raw Database Values:</h3>";
+    echo "Start Time (DB): " . $test->getRawOriginal('start_time') . "<br>";
+    echo "Scheduled At (DB): " . $test->getRawOriginal('scheduled_at') . "<br>";
+
+    echo "<h3>Carbon Objects:</h3>";
+    echo "Now: " . now() . "<br>";
+    echo "Start Time: " . ($test->start_time ? $test->start_time : 'NULL') . "<br>";
+    echo "Scheduled At: " . ($test->scheduled_at ? $test->scheduled_at : 'NULL') . "<br>";
+
+    echo "<h3>Comparisons:</h3>";
+    if ($test->start_time) {
+        echo "Now < Start Time: " . (now()->lessThan($test->start_time) ? 'TRUE' : 'FALSE') . "<br>";
+        echo "Seconds difference: " . now()->diffInSeconds($test->start_time, false) . "<br>";
+    }
+    if ($test->scheduled_at) {
+        echo "Now > Scheduled At: " . (now()->greaterThan($test->scheduled_at) ? 'TRUE' : 'FALSE') . "<br>";
+    }
+
+    echo "<h3>Model Method Results:</h3>";
+    echo "isUpcoming(): " . ($test->isUpcoming() ? 'TRUE' : 'FALSE') . "<br>";
+    echo "isExpired(): " . ($test->isExpired() ? 'TRUE' : 'FALSE') . "<br>";
+    echo "isActive(): " . ($test->isActive() ? 'TRUE' : 'FALSE') . "<br>";
+    echo "Status: " . $test->status . "<br>";
+
+    die();
+})->name('debug.test.timing')->middleware('auth');
+
+// PDF Annotation Routes
+Route::post('/tests/{test}/submit-annotated-pdf', [StudentTestController::class, 'submitAnnotatedPdf'])->name('student.tests.submit-annotated-pdf');
+Route::get('/tests/{test}/preview-annotated-pdf', [StudentTestController::class, 'previewAnnotatedPdf'])->name('student.tests.preview-annotated-pdf');
 // Announcements Post
 Route::get('/teacher/announcements',  [AnnouncementsController::class, 'index'])->name('teacher.announcements');
 Route::post('/teacher/announcement', [AnnouncementsController::class, 'store'])->name('teacher.announcement');

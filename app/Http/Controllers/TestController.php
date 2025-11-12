@@ -44,24 +44,26 @@ class TestController extends Controller
         $subjects = Subject::all();
         return view('tests.create', compact('subjects'));
     }
-
-    public function store(Request $request)
+public function store(Request $request)
 {
     $this->authorizeTeacher();
 
+    // VALIDATION - UPDATED with start_time
     if ($request->question_type === 'pdf') {
         $request->validate([
             'title' => 'required|string|max:255',
             'subject_id' => 'required|exists:subjects,id',
-            'scheduled_at' => 'required|date',
+            'start_time' => 'required|date|after:now', // ADDED
+            'scheduled_at' => 'required|date|after:start_time', // UPDATED
             'question_pdf' => 'required|file|mimes:pdf|max:10240',
-            'pdf_marks' => 'required|integer|min:1', // ADDED THIS
+            'pdf_marks' => 'required|integer|min:1',
         ]);
     } else {
         $request->validate([
             'title' => 'required|string|max:255',
             'subject_id' => 'required|exists:subjects,id',
-            'scheduled_at' => 'required|date',
+            'start_time' => 'required|date|after:now', // ADDED
+            'scheduled_at' => 'required|date|after:start_time', // UPDATED
             'questions' => 'required|array|min:1',
             'questions.*.text' => 'required',
             'questions.*.type' => 'required|in:mcq,written',
@@ -74,10 +76,11 @@ class TestController extends Controller
     $test = Test::create([
         'title'       => $request->title,
         'subject_id'  => $request->subject_id,
+        'start_time'  => Carbon::parse($request->start_time), // ADDED
         'scheduled_at' => Carbon::parse($request->scheduled_at),
         'teacher_id'  => Auth::id(),
         'question_type' => $request->question_type,
-        'total_marks' => $request->question_type === 'pdf' ? $request->pdf_marks : null, // ADDED THIS
+        'total_marks' => $request->question_type === 'pdf' ? $request->pdf_marks : null,
     ]);
 
     if ($request->question_type === 'pdf' && $request->hasFile('question_pdf')) {
@@ -88,7 +91,7 @@ class TestController extends Controller
             'has_pdf' => true,
             'pdf_path' => $pdfPath,
             'pdf_original_name' => $pdfFile->getClientOriginalName(),
-            'total_marks' => $request->pdf_marks, // ADDED THIS
+            'total_marks' => $request->pdf_marks,
         ]);
 
         // Create a single question entry for the PDF
@@ -295,6 +298,7 @@ class TestController extends Controller
         return view('tests.edit', compact('test', 'subjects'));
     }
 
+
     public function update(Request $request, Test $test)
     {
         $this->authorizeTeacher();
@@ -374,14 +378,25 @@ public function dashboard()
         ->groupBy('test_id')
         ->take(3);
 
+    // ADD MATERIALS SECTION - Get materials for student's class
+    $materials = \App\Models\Material::whereJsonContains('target_classes', $studentClass)
+                    ->with('teacher')
+                    ->latest()
+                    ->get();
+
     return view('student.dashboard', compact(
         'tests',
         'completedTests',
         'pendingTests',
-        'averageScore', // This will now be 50.5 instead of 13.8
-        'recentResults'
+        'averageScore',
+        'recentResults',
+        'materials' // Add materials to the view
     ));
 }
+
+/**
+ * Student view of learning materials
+ */
     public function results(Request $request)
     {
         $studentId = Auth::id();
@@ -506,29 +521,60 @@ public function dashboard()
         return response()->download($path, $filename);
     }
 
-    public function take(Test $test)
-    {
-        $this->authorizeStudent();
+public function take(Test $test)
+{
+    $this->authorizeStudent();
 
-        $test->load('questions', 'subject');
+    $test->load('questions', 'subject');
 
-        // Check if deadline has passed
-        $deadlinePassed = $test->scheduled_at && now()->greaterThan($test->scheduled_at);
+    $now = now();
 
-        if ($deadlinePassed) {
-            return redirect()->route('student.dashboard')
-                ->with('error', 'The submission deadline has passed. You can no longer take this test.');
-        }
+    \Log::info("=== CORRECTED TEST ACCESS CHECK ===");
+    \Log::info("Test ID: " . $test->id);
+    \Log::info("Current Time: " . $now->format('Y-m-d H:i:s'));
+    \Log::info("Start Time: " . ($test->start_time ? $test->start_time->format('Y-m-d H:i:s') : 'NULL'));
+    \Log::info("Scheduled At: " . ($test->scheduled_at ? $test->scheduled_at->format('Y-m-d H:i:s') : 'NULL'));
 
-        // Get all existing answers for this test and student, keyed by question_id
+    // Get detailed status information using CORRECTED methods
+    $statusInfo = $test->getDetailedStatus();
+    \Log::info("Test Status Info: ", $statusInfo);
+
+    // CORRECTED ORDER: Check expired first, then upcoming, then active
+    if ($test->isExpired()) {
+        \Log::info("BLOCKED: Test is expired - deadline passed");
+
         $existingAnswers = TestAnswer::where('test_id', $test->id)
             ->where('student_id', Auth::id())
             ->get()
             ->keyBy('question_id');
 
-        return view('student.test', compact('test', 'existingAnswers'));
+        return view('student.test', compact('test', 'existingAnswers'))
+            ->with('error', "The submission deadline has passed. You can no longer take this test. The deadline was {$statusInfo['time_since_deadline']} ago.");
     }
 
+    // Check if test is upcoming
+    if ($test->isUpcoming()) {
+        \Log::info("BLOCKED: Test is upcoming - not started yet");
+
+        $existingAnswers = TestAnswer::where('test_id', $test->id)
+            ->where('student_id', Auth::id())
+            ->get()
+            ->keyBy('question_id');
+
+        return view('student.test', compact('test', 'existingAnswers'))
+            ->with('error', "This test is not available yet. It will start in {$statusInfo['time_until_start']}.");
+    }
+
+    // If we get here, the test is active
+    \Log::info("ALLOWED: Test is active and accessible");
+
+    $existingAnswers = TestAnswer::where('test_id', $test->id)
+        ->where('student_id', Auth::id())
+        ->get()
+        ->keyBy('question_id');
+
+    return view('student.test', compact('test', 'existingAnswers'));
+}
     public function submit(Request $request, Test $test)
 {
     $this->authorizeStudent();
@@ -839,6 +885,20 @@ public function dashboard()
             'Content-Disposition' => 'inline; filename="' . ($test->pdf_original_name ?? 'test.pdf') . '"'
         ]);
     }
+
+    public function studentMaterials()
+{
+    $this->authorizeStudent();
+
+    $studentClass = Auth::user()->class_grade;
+
+    $materials = \App\Models\Material::whereJsonContains('target_classes', $studentClass)
+                    ->with('teacher')
+                    ->latest()
+                    ->get();
+
+    return view('student.materials', compact('materials'));
+}
 
     public function viewPdf(Test $test)
     {

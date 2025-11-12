@@ -16,6 +16,7 @@
       --accent-blue: #3498db;
       --accent-green: #2ecc71;
       --accent-orange: #e67e22;
+      --accent-red: #e74c3c;
       --sidebar-width: 250px;
     }
 
@@ -251,6 +252,162 @@
       color: var(--primary-light);
     }
 
+    /* Materials Section Styles */
+    .materials-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 20px;
+      margin-top: 20px;
+    }
+
+    .material-card {
+      background: white;
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      transition: all 0.3s;
+      border-left: 4px solid var(--accent-blue);
+    }
+
+    .material-card.video {
+      border-left-color: var(--accent-red);
+    }
+
+    .material-card.link {
+      border-left-color: var(--accent-green);
+    }
+
+    .material-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .material-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 10px;
+    }
+
+    .material-title {
+      font-weight: 600;
+      color: var(--primary-dark);
+      margin-bottom: 5px;
+      flex: 1;
+    }
+
+    .material-description {
+      color: var(--primary-light);
+      font-size: 0.9rem;
+      margin-bottom: 15px;
+    }
+
+    .material-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.8rem;
+      color: var(--primary-light);
+      margin-bottom: 10px;
+    }
+
+    .material-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    .btn-download {
+      background: var(--accent-green);
+      color: white;
+      border: none;
+      padding: 8px 15px;
+      border-radius: 5px;
+      font-size: 0.9rem;
+      text-decoration: none;
+      transition: all 0.3s;
+      flex: 1;
+      text-align: center;
+    }
+
+    .btn-download:hover {
+      background: #27ae60;
+      color: white;
+    }
+
+    .btn-view {
+      background: var(--accent-blue);
+      color: white;
+      border: none;
+      padding: 8px 15px;
+      border-radius: 5px;
+      font-size: 0.9rem;
+      text-decoration: none;
+      transition: all 0.3s;
+      flex: 1;
+      text-align: center;
+    }
+
+    .btn-view:hover {
+      background: #2980b9;
+      color: white;
+    }
+
+    .btn-watch {
+      background: var(--accent-red);
+      color: white;
+      border: none;
+      padding: 8px 15px;
+      border-radius: 5px;
+      font-size: 0.9rem;
+      text-decoration: none;
+      transition: all 0.3s;
+      flex: 1;
+      text-align: center;
+    }
+
+    .btn-watch:hover {
+      background: #c0392b;
+      color: white;
+    }
+
+    .btn-visit {
+      background: var(--accent-orange);
+      color: white;
+      border: none;
+      padding: 8px 15px;
+      border-radius: 5px;
+      font-size: 0.9rem;
+      text-decoration: none;
+      transition: all 0.3s;
+      flex: 1;
+      text-align: center;
+    }
+
+    .btn-visit:hover {
+      background: #d35400;
+      color: white;
+    }
+
+    .file-missing {
+      background: #f8d7da;
+      color: #721c24;
+      padding: 10px;
+      border-radius: 5px;
+      font-size: 0.9rem;
+      text-align: center;
+      margin-top: 10px;
+    }
+
+    .material-badge {
+      font-size: 0.7rem;
+      padding: 4px 8px;
+    }
+
+    .badge-file { background-color: var(--accent-blue); }
+    .badge-video { background-color: var(--accent-red); }
+    .badge-link { background-color: var(--accent-green); }
+
     /* Responsive Design */
     @media (max-width: 992px) {
       .sidebar {
@@ -286,6 +443,14 @@
       .cards {
         grid-template-columns: 1fr;
       }
+
+      .materials-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .material-actions {
+        flex-direction: column;
+      }
     }
   </style>
 </head>
@@ -299,12 +464,10 @@
     <ul>
       <li><a href="{{ route('student.dashboard') }}"><i class="bi bi-house"></i> <span>Dashboard</span></a></li>
       <li><a href="{{ route('student.results') }}"><i class="bi bi-trophy"></i> <span>My Results</span></a></li>
-      <li><a href="#"><i class="bi bi-journal-text"></i> <span>Active Tests</span></a></li>
-      <a href="{{ route('student.report') }}" class="btn btn-info btn-sm">
-    <i class="fas fa-chart-line me-1"></i>View My Report
-</a>
+      <li><a href="#available-tests"><i class="bi bi-journal-text"></i> <span>Active Tests</span></a></li>
+      <li><a href="{{ route('student.report') }}"><i class="bi bi-graph-up"></i> <span>My Report</span></a></li>
+      <li><a href="#learning-materials"><i class="bi bi-folder"></i> <span>Learning Materials</span></a></li>
       <li><a href="#"><i class="bi bi-clock-history"></i> <span>Test History</span></a></li>
-      <li><a href="#"><i class="bi bi-graph-up"></i> <span>Performance</span></a></li>
       <li><a href="#"><i class="bi bi-person"></i> <span>Profile</span></a></li>
       <li>
         <!-- Logout Form -->
@@ -340,8 +503,8 @@
         <div class="stat-label">Average Score</div>
       </div>
       <div class="stat-card">
-        <div class="stat-number">{{ $pendingTests }}</div>
-        <div class="stat-label">Pending Tests</div>
+        <div class="stat-number">{{ $materials->count() }}</div>
+        <div class="stat-label">Learning Materials</div>
       </div>
     </div>
 
@@ -367,22 +530,138 @@
 
       <div class="card">
         <div class="card-icon">
-          <i class="bi bi-graph-up"></i>
+          <i class="bi bi-folder"></i>
         </div>
-        <h3>Performance</h3>
-        <p>Track your progress and see how you're performing across different subjects.</p>
-        <a href="#" class="btn-card">View Performance</a>
+        <h3>Learning Materials</h3>
+        <p>Access study materials and resources shared by your teachers.</p>
+        <a href="#learning-materials" class="btn-card">View Materials</a>
       </div>
 
       <div class="card">
         <div class="card-icon">
-          <i class="bi bi-clock-history"></i>
+          <i class="bi bi-graph-up"></i>
         </div>
-        <h3>Test History</h3>
-        <p>Review all tests you've completed and see your submission history.</p>
-        <a href="#" class="btn-card">View History</a>
+        <h3>Performance</h3>
+        <p>Track your progress and see how you're performing across different subjects.</p>
+        <a href="{{ route('student.report') }}" class="btn-card">View Report</a>
       </div>
     </section>
+
+    <!-- Learning Materials Section -->
+    <div class="card" id="learning-materials">
+      <h3>Learning Materials</h3>
+      @if($materials->count() > 0)
+        <div class="materials-grid">
+          @foreach($materials as $material)
+          <div class="material-card {{ $material->material_type }}">
+            <div class="material-header">
+              <div class="material-title">{{ $material->title }}</div>
+              <span class="badge material-badge badge-{{ $material->material_type }}">
+                @if($material->material_type === 'file') Document
+                @elseif($material->material_type === 'video') Video
+                @elseif($material->material_type === 'link') Link
+                @endif
+              </span>
+            </div>
+
+            @if($material->description)
+            <div class="material-description">
+              {{ $material->description }}
+            </div>
+            @endif
+
+            <div class="material-meta">
+              <div>
+                <small><i class="bi bi-person"></i>
+                  @if($material->teacher)
+                    {{ $material->teacher->name }}
+                  @else
+                    Teacher
+                  @endif
+                </small>
+              </div>
+              <div>
+                <small><i class="bi bi-calendar"></i> {{ $material->created_at->format('M j, Y') }}</small>
+              </div>
+            </div>
+
+            <div class="material-actions">
+              @if($material->material_type === 'file')
+                @php
+                  $fileExists = $material->file_path && Storage::disk('public')->exists($material->file_path);
+                @endphp
+
+                @if($fileExists)
+                  <a href="{{ route('material.download', $material->id) }}"
+                     class="btn-download"
+                     download="{{ $material->file_name }}">
+                    <i class="bi bi-download"></i> Download
+                  </a>
+                  <a href="{{ route('material.view', $material->id) }}"
+                     class="btn-view"
+                     target="_blank">
+                    <i class="bi bi-eye"></i> View
+                  </a>
+                @else
+                  <div class="file-missing">
+                    <i class="bi bi-exclamation-triangle"></i> File not available
+                  </div>
+                @endif
+
+              @elseif($material->material_type === 'video')
+                @if($material->video_path && Storage::disk('public')->exists($material->video_path))
+                  <a href="{{ Storage::disk('public')->url($material->video_path) }}"
+                     class="btn-watch"
+                     target="_blank">
+                    <i class="bi bi-play-circle"></i> Watch Video
+                  </a>
+                @elseif($material->video_embed_code)
+                  <button class="btn-watch" onclick="showVideoModal('{{ $material->id }}')">
+                    <i class="bi bi-play-circle"></i> Watch Video
+                  </button>
+                @else
+                  <div class="file-missing">
+                    <i class="bi bi-exclamation-triangle"></i> Video not available
+                  </div>
+                @endif
+
+              @elseif($material->material_type === 'link')
+                @if($material->resource_link)
+                  <a href="{{ $material->resource_link }}"
+                     class="btn-visit"
+                     target="_blank">
+                    <i class="bi bi-box-arrow-up-right"></i> Visit Link
+                  </a>
+                @else
+                  <div class="file-missing">
+                    <i class="bi bi-exclamation-triangle"></i> Link not available
+                  </div>
+                @endif
+              @endif
+            </div>
+
+            <!-- File info for documents -->
+            @if($material->material_type === 'file' && $material->file_name)
+            <div class="material-meta">
+              <div>
+                <small><i class="bi bi-file-earmark"></i> {{ $material->file_name }}</small>
+              </div>
+              <div>
+                <small><i class="bi bi-clock"></i> {{ $material->created_at->diffForHumans() }}</small>
+              </div>
+            </div>
+            @endif
+          </div>
+          @endforeach
+        </div>
+      @else
+        <div class="text-center py-4">
+          <i class="bi bi-folder-x" style="font-size: 3rem; color: #bdc3c7;"></i>
+          <p class="text-muted mt-3">No learning materials available for your class yet.</p>
+          <small class="text-muted">Your teachers will share materials here when available.</small>
+        </div>
+      @endif
+    </div>
 
     <!-- Available Tests Section -->
     <div class="card" id="available-tests">
@@ -431,18 +710,53 @@
         </div>
         @endif
 
+        @if($materials->count() > 0)
         <div class="activity-item">
-          <i class="bi bi-trophy-fill text-warning"></i>
+          <i class="bi bi-folder-plus text-info"></i>
           <div class="activity-content">
-            <span>Average score: {{ $averageScore }}%</span>
-            <small>Your current performance</small>
+            <span>{{ $materials->count() }} learning materials available</span>
+            <small>Check the materials section to access them</small>
           </div>
         </div>
+        @endif
       </div>
     </div>
   </main>
 
+  <!-- Video Modal -->
+  <div class="modal fade" id="videoModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="videoModalTitle">Video</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body" id="videoModalBody">
+          <!-- Video content will be loaded here -->
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Bootstrap JS Bundle with Popper -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+    function showVideoModal(materialId) {
+      // This would typically fetch the video embed code from the server
+      // For now, we'll just show a placeholder
+      const modalBody = document.getElementById('videoModalBody');
+      modalBody.innerHTML = `
+        <div class="text-center p-4">
+          <i class="bi bi-camera-video" style="font-size: 3rem; color: #bdc3c7;"></i>
+          <p class="mt-3">Video content would be embedded here.</p>
+          <small class="text-muted">Embedded video player for material ID: ${materialId}</small>
+        </div>
+      `;
+
+      const videoModal = new bootstrap.Modal(document.getElementById('videoModal'));
+      videoModal.show();
+    }
+  </script>
 </body>
 </html>

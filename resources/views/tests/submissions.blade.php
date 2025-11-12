@@ -53,6 +53,8 @@
                                         <h6 class="mb-0">
                                             @if($answer->answer === 'PDF_SUBMISSION' && $answer->answer_pdf_path)
                                                 <i class="bi bi-file-earmark-pdf text-danger"></i> PDF Answer Submission
+                                            @elseif($answer->answer === 'ANNOTATED_PDF_SUBMISSION' && $answer->answer_pdf_path)
+                                                <i class="bi bi-file-image text-success"></i> Annotated Answer Submission
                                             @else
                                                 Q{{ $loop->iteration }}: {{ $answer->question ? $answer->question->question_text : 'Answer' }}
                                             @endif
@@ -71,73 +73,85 @@
                                     <div class="student-answer bg-light p-3 rounded mb-3">
                                         <strong>Student's Answer:</strong><br>
 
-                                        {{-- PDF Answer Submission --}}
-                                        @if($answer->answer === 'PDF_SUBMISSION' && $answer->answer_pdf_path)
+                                        {{-- PDF or Annotated Answer Submission --}}
+                                        @if(($answer->answer === 'PDF_SUBMISSION' || $answer->answer === 'ANNOTATED_PDF_SUBMISSION') && $answer->answer_pdf_path)
                                             <div class="pdf-submission">
-                                                <!-- PDF Embed with proper URL -->
+                                                <!-- Check file type -->
+                                                @php
+                                                    $fileExists = Storage::disk('public')->exists($answer->answer_pdf_path);
+                                                    $mimeType = $fileExists ? Storage::disk('public')->mimeType($answer->answer_pdf_path) : null;
+                                                    $isImage = $fileExists && str_contains($mimeType, 'image');
+
+                                                    // Use the controller method to view file - this is the key fix!
+                                                    $fileViewUrl = route('teacher.tests.answers.view-pdf', [$test->id, $answer->id]);
+                                                    $fileDownloadUrl = route('teacher.tests.answers.download-pdf', [$test->id, $answer->id]);
+
+                                                    $directUrl = $fileExists ? Storage::disk('public')->url($answer->answer_pdf_path) : null;
+                                                @endphp
+
                                                 <div class="mb-3">
-                                                    <h6><i class="bi bi-file-earmark-pdf"></i> Submitted PDF Answer:</h6>
-                                                    <div class="pdf-embed-container border rounded bg-white">
-                                                        @php
-                                                            // Use the controller method to view PDF - this is the key fix!
-                                                            $pdfViewUrl = route('teacher.tests.answers.view-pdf', [$test->id, $answer->id]);
-                                                            $pdfDownloadUrl = route('teacher.tests.answers.download-pdf', [$test->id, $answer->id]);
+                                                    <h6>
+                                                        <i class="bi {{ $isImage ? 'bi-file-image text-success' : 'bi-file-earmark-pdf text-danger' }}"></i>
+                                                        Submitted {{ $isImage ? 'Annotated Answer (Image)' : 'PDF Answer' }}:
+                                                    </h6>
 
-                                                            // Also check if file exists for display
-                                                            $fileExists = Storage::disk('public')->exists($answer->answer_pdf_path);
-                                                            $directUrl = $fileExists ? Storage::disk('public')->url($answer->answer_pdf_path) : null;
-                                                        @endphp
-
-                                                        @if($fileExists)
-                                                            <!-- Use the teacher PDF viewing route -->
-                                                            <iframe
-                                                                src="{{ $pdfViewUrl }}"
-                                                                width="100%"
-                                                                height="500"
-                                                                style="border: none;"
-                                                                title="Student's PDF Answer - {{ $answer->answer_pdf_original_name }}">
-                                                                Your browser does not support PDF embedding.
-                                                                <a href="{{ $pdfViewUrl }}" target="_blank">
-                                                                    Click here to view the PDF
-                                                                </a>
-                                                            </iframe>
+                                                    @if($fileExists)
+                                                        @if($isImage)
+                                                            <!-- Display Image -->
+                                                            <div class="image-embed-container border rounded bg-white text-center p-3">
+                                                                <img src="{{ $fileViewUrl }}"
+                                                                     alt="Annotated Answer"
+                                                                     class="img-fluid border rounded shadow-sm"
+                                                                     style="max-height: 500px; max-width: 100%;">
+                                                            </div>
                                                         @else
-                                                            <div class="text-center p-4">
-                                                                <i class="bi bi-exclamation-triangle text-warning" style="font-size: 2rem;"></i>
-                                                                <p class="mt-2">PDF file not found in storage.</p>
-                                                                <p class="text-muted">Path: {{ $answer->answer_pdf_path }}</p>
-                                                                <div class="mt-2">
-                                                                    <button type="button" class="btn btn-sm btn-outline-secondary"
-                                                                            onclick="debugPdfPath('{{ $answer->id }}')">
-                                                                        Debug PDF Path
-                                                                    </button>
-                                                                </div>
+                                                            <!-- Display PDF -->
+                                                            <div class="pdf-embed-container border rounded bg-white">
+                                                                <iframe
+                                                                    src="{{ $fileViewUrl }}"
+                                                                    width="100%"
+                                                                    height="500"
+                                                                    style="border: none;"
+                                                                    title="Student's PDF Answer - {{ $answer->answer_pdf_original_name }}">
+                                                                    Your browser does not support PDF embedding.
+                                                                    <a href="{{ $fileViewUrl }}" target="_blank">
+                                                                        Click here to view the PDF
+                                                                    </a>
+                                                                </iframe>
                                                             </div>
                                                         @endif
-                                                    </div>
+                                                    @else
+                                                        <div class="text-center p-4">
+                                                            <i class="bi bi-exclamation-triangle text-warning" style="font-size: 2rem;"></i>
+                                                            <p class="mt-2">File not found in storage.</p>
+                                                            <p class="text-muted">Path: {{ $answer->answer_pdf_path }}</p>
+                                                        </div>
+                                                    @endif
                                                 </div>
 
-                                                <!-- PDF Actions -->
+                                                <!-- File Actions -->
                                                 <div class="d-flex gap-2 flex-wrap mb-3">
                                                     @if($fileExists)
                                                         <!-- View in new tab using teacher route -->
-                                                        <a href="{{ $pdfViewUrl }}"
+                                                        <a href="{{ $fileViewUrl }}"
                                                            target="_blank"
                                                            class="btn btn-outline-primary">
                                                             <i class="bi bi-eye"></i> Open in New Tab
                                                         </a>
 
                                                         <!-- Download using teacher download route -->
-                                                        <a href="{{ $pdfDownloadUrl }}"
+                                                        <a href="{{ $fileDownloadUrl }}"
                                                            class="btn btn-success">
-                                                            <i class="bi bi-download"></i> Download PDF
+                                                            <i class="bi bi-download"></i> Download {{ $isImage ? 'Image' : 'PDF' }}
                                                         </a>
 
                                                         <!-- Full screen view -->
-                                                        <button type="button" class="btn btn-info"
-                                                                onclick="openFullScreenPdf('{{ $pdfViewUrl }}')">
-                                                            <i class="bi bi-arrows-fullscreen"></i> Full Screen
-                                                        </button>
+                                                        @if(!$isImage)
+                                                            <button type="button" class="btn btn-info"
+                                                                    onclick="openFullScreenPdf('{{ $fileViewUrl }}')">
+                                                                <i class="bi bi-arrows-fullscreen"></i> Full Screen
+                                                            </button>
+                                                        @endif
 
                                                         <!-- Direct file access (fallback) -->
                                                         @if($directUrl)
@@ -150,7 +164,7 @@
                                                     @else
                                                         <span class="text-danger">
                                                             <i class="bi bi-exclamation-circle"></i>
-                                                            PDF file unavailable
+                                                            File unavailable
                                                         </span>
                                                     @endif
                                                 </div>
@@ -162,7 +176,7 @@
                                                             <strong>File Information:</strong><br>
                                                             <small class="text-muted">
                                                                 <i class="bi bi-file-earmark"></i>
-                                                                Name: {{ $answer->answer_pdf_original_name ?? 'answer.pdf' }}
+                                                                Name: {{ $answer->answer_pdf_original_name ?? ($isImage ? 'annotated_answer.png' : 'answer.pdf') }}
                                                             </small><br>
                                                             <small class="text-muted">
                                                                 <i class="bi bi-clock"></i>
@@ -171,6 +185,10 @@
                                                             <small class="text-muted">
                                                                 <i class="bi bi-hash"></i>
                                                                 Answer ID: {{ $answer->id }}
+                                                            </small><br>
+                                                            <small class="text-muted">
+                                                                <i class="bi bi-info-circle"></i>
+                                                                Type: {{ $answer->answer === 'ANNOTATED_PDF_SUBMISSION' ? 'Annotated PDF' : 'Regular PDF' }}
                                                             </small>
                                                         </div>
                                                         <div class="col-md-6">
@@ -183,6 +201,10 @@
                                                                 <small class="text-success">
                                                                     <i class="bi bi-check-circle"></i>
                                                                     File exists ({{ round(Storage::disk('public')->size($answer->answer_pdf_path) / 1024, 2) }} KB)
+                                                                </small><br>
+                                                                <small class="text-info">
+                                                                    <i class="bi bi-filetype-{{ $isImage ? 'png' : 'pdf' }}"></i>
+                                                                    Type: {{ $mimeType }}
                                                                 </small><br>
                                                                 <small class="text-info">
                                                                     <i class="bi bi-link"></i>
@@ -317,6 +339,12 @@
         padding: 15px;
         background: #f8f9fa;
     }
+    .image-embed-container {
+        background: #f8f9fa;
+        border-radius: 5px;
+        overflow: hidden;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
     .pdf-embed-container {
         background: #f8f9fa;
         border-radius: 5px;
@@ -340,6 +368,12 @@
 
     #fullScreenPdfFrame {
         min-height: 100%;
+    }
+
+    /* Different colors for different submission types */
+    .annotated-submission {
+        border-color: #28a745 !important;
+        background: #f8fff9 !important;
     }
 </style>
 
@@ -412,6 +446,14 @@ function debugPdfPath(answerId) {
 document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.card').forEach(card => {
         updateTotalMarks(card);
+    });
+
+    // Add specific styling for annotated submissions
+    document.querySelectorAll('.pdf-submission').forEach(container => {
+        const answerType = container.closest('.question-item').querySelector('h6').textContent;
+        if (answerType.includes('Annotated')) {
+            container.classList.add('annotated-submission');
+        }
     });
 });
 </script>

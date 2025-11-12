@@ -1,5 +1,3 @@
-
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -331,6 +329,19 @@
       display: block;
     }
 
+    /* Time Fields Styling */
+    .time-fields {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 768px) {
+      .time-fields {
+        grid-template-columns: 1fr;
+      }
+    }
+
     /* Responsive */
     @media (max-width: 992px) {
       .sidebar { width: 70px; text-align: center; }
@@ -445,9 +456,20 @@
           </select>
         </div>
 
+        <!-- ADDED: Start Time and Deadline Fields -->
         <div class="mb-4">
-          <label class="form-label">Deadline</label>
-          <input type="datetime-local" name="scheduled_at" class="form-control" required>
+          <div class="time-fields">
+            <div>
+              <label class="form-label">Start Time</label>
+              <input type="datetime-local" name="start_time" class="form-control" required>
+              <small class="text-muted">Students will be able to start the test from this time</small>
+            </div>
+            <div>
+              <label class="form-label">Deadline/End Time</label>
+              <input type="datetime-local" name="scheduled_at" class="form-control" required>
+              <small class="text-muted">Students must submit before this time</small>
+            </div>
+          </div>
         </div>
 
         <!-- Option Selection -->
@@ -529,7 +551,7 @@
               </div>
             </div>
 
-            <!-- ADDED: PDF Marks Field -->
+            <!-- PDF Marks Field -->
             <div class="mt-4">
               <label class="form-label">Marks for PDF Paper</label>
               <input type="number" name="pdf_marks" class="form-control" id="pdfMarks"
@@ -549,6 +571,54 @@
   <script>
     let qIndex = 1;
     let activeTextarea = null;
+
+    // Set minimum datetime to current time
+    function setMinDateTime() {
+      const now = new Date();
+      const localDateTime = now.toISOString().slice(0, 16);
+
+      const startTimeInput = document.querySelector('input[name="start_time"]');
+      const deadlineInput = document.querySelector('input[name="scheduled_at"]');
+
+      if (startTimeInput) {
+        startTimeInput.min = localDateTime;
+      }
+      if (deadlineInput) {
+        deadlineInput.min = localDateTime;
+      }
+    }
+
+    // Validate time fields
+    function validateTimeFields() {
+      const startTimeInput = document.querySelector('input[name="start_time"]');
+      const deadlineInput = document.querySelector('input[name="scheduled_at"]');
+
+      if (startTimeInput.value && deadlineInput.value) {
+        const startTime = new Date(startTimeInput.value);
+        const deadline = new Date(deadlineInput.value);
+
+        if (deadline <= startTime) {
+          deadlineInput.setCustomValidity('Deadline must be after start time');
+        } else {
+          deadlineInput.setCustomValidity('');
+        }
+      }
+    }
+
+    // Initialize time validation
+    document.addEventListener('DOMContentLoaded', function() {
+      setMinDateTime();
+
+      const startTimeInput = document.querySelector('input[name="start_time"]');
+      const deadlineInput = document.querySelector('input[name="scheduled_at"]');
+
+      if (startTimeInput) {
+        startTimeInput.addEventListener('change', validateTimeFields);
+      }
+      if (deadlineInput) {
+        deadlineInput.addEventListener('change', validateTimeFields);
+      }
+    });
 
     // Option tabs functionality
     document.querySelectorAll('.option-tab').forEach(tab => {
@@ -834,6 +904,20 @@
 
       console.log('Form submission validation - Question type:', questionType);
 
+      // Validate time fields
+      const startTimeInput = document.querySelector('input[name="start_time"]');
+      const deadlineInput = document.querySelector('input[name="scheduled_at"]');
+
+      if (startTimeInput.value && deadlineInput.value) {
+        const startTime = new Date(startTimeInput.value);
+        const deadline = new Date(deadlineInput.value);
+
+        if (deadline <= startTime) {
+          isValid = false;
+          errorMessage = 'Deadline must be after start time';
+        }
+      }
+
       if (questionType === 'pdf') {
         // Check if PDF is uploaded
         if (!pdfUpload.files.length) {
@@ -882,6 +966,8 @@
     document.getElementById('testForm').addEventListener('submit', function(e) {
       console.log('Form submitted');
       console.log('Question type:', document.getElementById('questionType').value);
+      console.log('Start Time:', document.querySelector('input[name="start_time"]').value);
+      console.log('Deadline:', document.querySelector('input[name="scheduled_at"]').value);
       console.log('PDF file:', pdfUpload.files[0]);
       console.log('PDF Marks:', pdfMarks.value);
 
